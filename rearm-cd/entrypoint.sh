@@ -1,3 +1,3 @@
 #!/bin/sh
 cd /app
-./reliza-cd
+./rearm-cd

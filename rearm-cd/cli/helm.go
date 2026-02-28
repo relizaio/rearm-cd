@@ -33,7 +33,7 @@ const (
 	InstallValues         = "install-values.yaml"
 	RecordedDeloyedData   = "recorded-deployed-data.json"
 	WatcherHelmDataSuffix = "-watcher-helm.json"
-	CustomValuesFile      = "reliza-hub-custom-values.yaml"
+	CustomValuesFile      = "rearm-custom-values.yaml"
 )
 
 func InstallSealedCertificates() {
@@ -66,7 +66,7 @@ func cleanupHelmChart(helmChartPath string) {
 	shellout("rm -rf " + helmChartPath + "*.tgz")
 }
 
-func GetHelmRepoInfoFromDeployment(rd *RelizaDeployment) HelmRepoInfo {
+func GetHelmRepoInfoFromDeployment(rd *RearmDeployment) HelmRepoInfo {
 	var helmRepoInfo HelmRepoInfo
 
 	helmRepoInfo.ChartName = GetChartNameFromDeployment(rd)
@@ -113,7 +113,7 @@ type HelmRepoInfo struct {
 	OciUri    string
 }
 
-func DownloadHelmChart(path string, rd *RelizaDeployment, pa *ProjectAuth, helmRepoInfo HelmRepoInfo) error {
+func DownloadHelmChart(path string, rd *RearmDeployment, pa *ProjectAuth, helmRepoInfo HelmRepoInfo) error {
 	var err error
 	cleanupHelmChart(path + helmRepoInfo.ChartName)
 
@@ -151,9 +151,9 @@ func DownloadHelmChart(path string, rd *RelizaDeployment, pa *ProjectAuth, helmR
 	return err
 }
 
-func resolveCustomValuesFromHub(groupPath string, rd *RelizaDeployment) bool {
+func resolveCustomValuesFromHub(groupPath string, rd *RearmDeployment) bool {
 	present := false
-	custValCmd := RelizaCliApp + " instprops --property CUSTOM_VALUES --usenamespacebundle=true --namespace " + rd.Namespace + " --bundle '" + rd.Bundle + "'"
+	custValCmd := RearmCliApp + " devops instprops --property CUSTOM_VALUES --usenamespaceproduct=true --namespace " + rd.Namespace + " --product '" + rd.Bundle + "'"
 	sugar.Debug("Fetching CUSTOM_VALUES for bundle: ", rd.Bundle, " namespace: ", rd.Namespace)
 	sugar.Debug("Command: ", custValCmd)
 	propsFromCli, stderr, err := shellout(custValCmd)
@@ -202,7 +202,7 @@ func resolveCustomValuesFromHub(groupPath string, rd *RelizaDeployment) bool {
 	return present
 }
 
-func MergeHelmValues(groupPath string, rd *RelizaDeployment) error {
+func MergeHelmValues(groupPath string, rd *RearmDeployment) error {
 	sugar.Debug("=== Starting Helm Values Merge ===")
 	hasCustomValues := resolveCustomValuesFromHub(groupPath, rd)
 	helmChartName := GetChartNameFromDeployment(rd)
@@ -213,7 +213,7 @@ func MergeHelmValues(groupPath string, rd *RelizaDeployment) error {
 	} else {
 		sugar.Debug("No CUSTOM_VALUES to merge, using default values only")
 	}
-	helmValuesCmd := RelizaCliApp + " helmvalues " + groupPath + helmChartName + valuesFlags + " --outfile " + groupPath + WorkValues
+	helmValuesCmd := RearmCliApp + " devops helmvalues " + groupPath + helmChartName + valuesFlags + " --outfile " + groupPath + WorkValues
 	sugar.Debug("Merge command: ", helmValuesCmd)
 	stdout, stderr, err := shellout(helmValuesCmd)
 	if err != nil {
@@ -234,13 +234,13 @@ func ResolvePreviousDiffFile(groupPath string) error {
 }
 
 func ReplaceTagsForDiff(groupPath string, namespace string) error {
-	replaceTagsCmd := RelizaCliApp + " replacetags --infile " + groupPath + WorkValues + " --outfile " + groupPath + ValuesDiff + " --fordiff=true --resolveprops=true --namespace " + namespace
+	replaceTagsCmd := RearmCliApp + " devops replacetags --infile " + groupPath + WorkValues + " --outfile " + groupPath + ValuesDiff + " --fordiff=true --resolveprops=true --namespace " + namespace
 	_, _, err := shellout(replaceTagsCmd)
 	return err
 }
 
 func ReplaceTagsForInstall(groupPath string, namespace string) error {
-	replaceTagsCmd := RelizaCliApp + " replacetags --infile " + groupPath + WorkValues + " --outfile " + groupPath + InstallValues + " --resolveprops=true --namespace " + namespace
+	replaceTagsCmd := RearmCliApp + " devops replacetags --infile " + groupPath + WorkValues + " --outfile " + groupPath + InstallValues + " --resolveprops=true --namespace " + namespace
 	sugar.Info("Replacing tags for install, command: ", replaceTagsCmd)
 	stdout, stderr, err := shellout(replaceTagsCmd)
 	if err != nil {
@@ -275,7 +275,7 @@ func IsValuesDiff(groupPath string) bool {
 	return isDiff
 }
 
-func IsFirstHelmInstallDone(rd *RelizaDeployment) bool {
+func IsFirstHelmInstallDone(rd *RearmDeployment) bool {
 	isFirstInstallDone := false
 	helmChartName := GetChartNameFromDeployment(rd)
 	helmListOut, _, _ := shellout(HelmApp + " list -f \"^" + helmChartName + "$\" -n " + rd.Namespace + " | wc -l")
@@ -289,7 +289,7 @@ func IsFirstHelmInstallDone(rd *RelizaDeployment) bool {
 	return isFirstInstallDone
 }
 
-func SetHelmChartAppVersion(groupPath string, rd *RelizaDeployment) error {
+func SetHelmChartAppVersion(groupPath string, rd *RearmDeployment) error {
 	var err error
 	if len(rd.AppVersion) > 0 {
 		helmChartName := GetChartNameFromDeployment(rd)
@@ -298,7 +298,7 @@ func SetHelmChartAppVersion(groupPath string, rd *RelizaDeployment) error {
 	return err
 }
 
-func InstallHelmChart(groupPath string, rd *RelizaDeployment) error {
+func InstallHelmChart(groupPath string, rd *RearmDeployment) error {
 	helmChartName := GetChartNameFromDeployment(rd)
 	sugar.Info("Installing chart ", helmChartName, " for namespace ", rd.Namespace)
 	helmCmd := HelmApp + " upgrade --install " + helmChartName + " --create-namespace -n " + rd.Namespace + " -f " + groupPath + InstallValues + " " + groupPath + helmChartName
@@ -315,7 +315,7 @@ func InstallHelmChart(groupPath string, rd *RelizaDeployment) error {
 	return err
 }
 
-func RecordDeployedData(groupPath string, rd *RelizaDeployment) {
+func RecordDeployedData(groupPath string, rd *RearmDeployment) {
 	rdJson, err := json.Marshal(rd)
 	if err != nil {
 		sugar.Error(err)
@@ -328,7 +328,7 @@ func RecordDeployedData(groupPath string, rd *RelizaDeployment) {
 	rdFile.Close()
 }
 
-func RecordHelmChartVersion(groupPath string, rd *RelizaDeployment) {
+func RecordHelmChartVersion(groupPath string, rd *RearmDeployment) {
 	shellout("echo " + rd.ArtVersion + " > " + groupPath + LastVersionFile)
 }
 
@@ -366,9 +366,9 @@ func StreamHelmChartMetadataToHub(ppn *PathsPerNamespace) {
 	sugar.Debug("Helm images = ", images, " , doStream = ", doStream)
 
 	if doStream {
-		sendMetaCmd := RelizaCliApp + " instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace
+		sendMetaCmd := RearmCliApp + " devops instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace
 		sugar.Info(sendMetaCmd)
-		_, _, err := shellout(RelizaCliApp + " instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace)
+		_, _, err := shellout(RearmCliApp + " devops instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace)
 		if err == nil {
 			recordStreamedHelmData(ppn, images)
 		}
@@ -419,7 +419,7 @@ func recordStreamedHelmData(ppn *PathsPerNamespace, images string) {
 	nsiFile.Close()
 }
 
-func GetChartNameFromDeployment(rd *RelizaDeployment) string {
+func GetChartNameFromDeployment(rd *RearmDeployment) string {
 	helmChartSplit := strings.Split(rd.ArtUri, "/")
 	return helmChartSplit[len(helmChartSplit)-1]
 }
@@ -451,7 +451,7 @@ func DeleteObsoleteDeployment(groupPath string) {
 	if err != nil {
 		sugar.Error(err)
 	} else {
-		var rd RelizaDeployment
+		var rd RearmDeployment
 		json.Unmarshal(recordedData, &rd)
 		helmChartName := GetChartNameFromDeployment(&rd)
 		if !argoInfo.IsArgoEnabled {

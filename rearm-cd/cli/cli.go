@@ -37,14 +37,14 @@ import (
 const (
 	ShellToUse   = "sh"
 	KubesealApp  = "tools/kubeseal"
-	RelizaCliApp = "tools/reliza-cli"
+	RearmCliApp  = "tools/rearm"
 	HelmMimeType = "application/vnd.cncf.helm.config.v1+json"
 )
 
 var (
 	sugar            *zap.SugaredLogger
 	SecretsNamespace string
-	RelizaNamespace  string
+	RearmNamespace   string
 	watcherImage     string
 	enableWatcher    bool
 	argoInfo         ArgoInfo
@@ -69,11 +69,11 @@ func init() {
 	sugar = logger.Sugar()
 
 	if len(os.Getenv("MY_NAMESPACE")) > 0 {
-		RelizaNamespace = os.Getenv("MY_NAMESPACE")
+		RearmNamespace = os.Getenv("MY_NAMESPACE")
 	} else {
-		RelizaNamespace = "argocd"
+		RearmNamespace = "argocd"
 	}
-	SecretsNamespace = RelizaNamespace
+	SecretsNamespace = RearmNamespace
 
 	if len(os.Getenv("WATCHER_IMAGE")) > 0 {
 		watcherImage = os.Getenv("WATCHER_IMAGE")
@@ -101,7 +101,7 @@ func init() {
 	if DryRun {
 		sugar.Info("DRY_RUN mode is enabled - mutating helm/kubectl commands will be logged but not executed")
 	}
-	sugar.Info("Running Reliza CD in " + EnvMode + " mode.")
+	sugar.Info("Running ReARM CD in " + EnvMode + " mode.")
 	argoInfo = detectArgo()
 	if EnvMode == NewArgoMode && !argoInfo.IsArgoDetected {
 		installArgoCD()
@@ -158,8 +158,8 @@ func SetSealedCertificateOnTheHub(cert string) {
 	}
 
 	if doSet {
-		sugar.Info("Setting Bitnami Sealed Certificate on Reliza Hub")
-		_, _, err := shellout(RelizaCliApp + " cd setsecretcert --cert " + cert)
+		sugar.Info("Setting Bitnami Sealed Certificate on ReARM")
+		_, _, err := shellout(RearmCliApp + " devops setsecretcert --cert " + cert)
 		if err == nil {
 			err := os.RemoveAll(certPath)
 			if err != nil {
@@ -175,12 +175,12 @@ func SetSealedCertificateOnTheHub(cert string) {
 				sugar.Error(err)
 			}
 		}
-		sugar.Info("Set Bitnami Sealed Certificate on Reliza Hub")
+		sugar.Info("Set Bitnami Sealed Certificate on ReARM")
 	}
 }
 
 func GetInstanceCycloneDX() (string, error) {
-	instManifest, _, err := shellout(RelizaCliApp + " exportinst")
+	instManifest, _, err := shellout(RearmCliApp + " devops exportinst")
 	return instManifest, err
 }
 
@@ -260,7 +260,7 @@ func produceAppConfigMapFromCdxComponents(cdxComponents *[]cdx.Component) map[st
 	return appConfigMap
 }
 
-func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RelizaDeployment {
+func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RearmDeployment {
 	bom := new(cdx.BOM)
 	manifestReader := strings.NewReader(cyclonedxManifest)
 	decoder := cdx.NewBOMDecoder(manifestReader, cdx.BOMFileFormatJSON)
@@ -268,14 +268,14 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RelizaDep
 		sugar.Error(err)
 	}
 
-	var rlzDeployments []RelizaDeployment
+	var rlzDeployments []RearmDeployment
 
 	appConfigMap := produceAppConfigMapFromCdxComponents(bom.Components)
 
 	if nil != bom.Components && len(*bom.Components) > 0 {
 		for _, comp := range *bom.Components {
 			if comp.MIMEType == HelmMimeType {
-				var rd RelizaDeployment
+				var rd RearmDeployment
 				rd.Name = resolveDeploymentNameFromString(comp.Group)
 				namespaceBundle := strings.Split(comp.Group, "---")
 				rd.Namespace = namespaceBundle[0]
@@ -309,15 +309,15 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RelizaDep
 	return rlzDeployments
 }
 
-func GetProjectAuthByArtifactDigest(artDigest, releaseNamespace string) ProjectAuth {
+func GetProjectAuthByArtifactDigest(delDigest, releaseNamespace string) ProjectAuth {
 	//TODO: use --releasens when api is updated
-	authResp, _, _ := shellout(RelizaCliApp + " cd artsecrets --artdigest " + artDigest + " --namespace " + SecretsNamespace + " --instanceuri " + releaseNamespace)
+	authResp, _, _ := shellout(RearmCliApp + " devops delsecrets --deldigest " + delDigest + " --namespace " + SecretsNamespace + " --instanceuri " + releaseNamespace)
 	var projectAuth map[string]ProjectAuth
 	json.Unmarshal([]byte(authResp), &projectAuth)
 	return projectAuth["artifactDownloadSecrets"]
 }
 
-func ProduceSecretYaml(w io.Writer, rd *RelizaDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
+func ProduceSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
 	secretTmpl :=
 		`apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
@@ -369,7 +369,7 @@ spec:
 	}
 }
 
-func ProducePlainSecretYaml(w io.Writer, rd *RelizaDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
+func ProducePlainSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
 	sugar.Debug("ProducePlainSecretYaml - helmInfo: ", helmInfo)
 	secretTmpl :=
 		`apiVersion: v1
@@ -414,7 +414,7 @@ data:
 	}
 }
 
-func ProduceNoCredSecretYaml(w io.Writer, rd *RelizaDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
+func ProduceNoCredSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
 	secretTmpl :=
 		`apiVersion: v1
 kind: Secret
@@ -456,7 +456,7 @@ data:
 	}
 }
 
-func ProduceEcrSecretYaml(w io.Writer, rd *RelizaDeployment, projAuth ProjectAuth, namespace string) {
+func ProduceEcrSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string) {
 	secretTmpl :=
 		`apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
@@ -503,7 +503,7 @@ func WaitUntilSecretCreated(name string, namespace string) {
 	shellout(secretWaitCmd)
 }
 
-func IsFirstInstallDone(rd *RelizaDeployment) bool {
+func IsFirstInstallDone(rd *RearmDeployment) bool {
 	isFirstInstallDone := false
 
 	if argoInfo.IsArgoEnabled {
@@ -517,7 +517,7 @@ func IsFirstInstallDone(rd *RelizaDeployment) bool {
 	return isFirstInstallDone
 }
 
-func InstallApplication(groupPath string, rd *RelizaDeployment) error {
+func InstallApplication(groupPath string, rd *RearmDeployment) error {
 	var err error
 
 	if argoInfo.IsArgoEnabled {
@@ -538,7 +538,7 @@ type SecretTemplateResolver struct {
 	EnableOci  string
 }
 
-type RelizaDeployment struct {
+type RearmDeployment struct {
 	Name       string
 	Namespace  string
 	Bundle     string

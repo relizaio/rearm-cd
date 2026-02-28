@@ -109,9 +109,9 @@ func runBackup() {
 	}
 	sugar.Info("Encrypted backup: ", encFile)
 
-	s3Key := backupConfig.Prefix + "relizacd-workspace-backup-" + timestamp + ".tar.gz.enc"
+	s3Key := backupConfig.Prefix + "rearmcd-workspace-backup-" + timestamp + ".tar.gz.enc"
 	if len(backupConfig.Prefix) > 0 && !strings.HasSuffix(backupConfig.Prefix, "/") {
-		s3Key = backupConfig.Prefix + "-relizacd-workspace-backup-" + timestamp + ".tar.gz.enc"
+		s3Key = backupConfig.Prefix + "-rearmcd-workspace-backup-" + timestamp + ".tar.gz.enc"
 	}
 
 	err = uploadToS3(encFile, s3Key)

@@ -1,4 +1,4 @@
-module github.com/relizaio/reliza-cd
+module github.com/relizaio/rearm-cd
 
 go 1.25.3
 

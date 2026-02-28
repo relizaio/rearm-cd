@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/relizaio/reliza-cd/cli"
-	"github.com/relizaio/reliza-cd/utils"
+	"github.com/relizaio/rearm-cd/cli"
+	"github.com/relizaio/rearm-cd/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -165,7 +165,7 @@ func collectExistingDeployments() map[string]bool {
 	return existingDeployments
 }
 
-func processSingleDeployment(rd *cli.RelizaDeployment) error {
+func processSingleDeployment(rd *cli.RearmDeployment) error {
 	if cli.SecretsNamespace == "" {
 		sugar.Info("SecretNS is null")
 		panic("secretnamespace must be set by this point")

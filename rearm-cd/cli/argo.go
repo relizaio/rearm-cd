@@ -23,7 +23,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/relizaio/reliza-cd/utils"
+	"github.com/relizaio/rearm-cd/utils"
 )
 
 type ArgoApplicationTemplateResolver struct {
@@ -76,7 +76,7 @@ func detectArgo() ArgoInfo {
 	return argoInfo
 }
 
-func IsFirstArgoInstallDone(rd *RelizaDeployment) bool {
+func IsFirstArgoInstallDone(rd *RearmDeployment) bool {
 	isFirstInstallDone := false
 	argoAppListOut, _, _ := shellout(KubectlApp + " kubectl get applications -A | grep " + rd.Name + " | wc -l")
 	argoAppListOut = strings.Replace(argoAppListOut, "\n", "", -1)
@@ -100,7 +100,7 @@ func indent(s string, n int) string {
 	return strings.Join(lines, "\n")
 }
 
-func ProduceArgoApplicationYaml(w io.Writer, rd *RelizaDeployment, namespace, groupPath string) error {
+func ProduceArgoApplicationYaml(w io.Writer, rd *RearmDeployment, namespace, groupPath string) error {
 	applicationTmpl :=
 		`apiVersion: argoproj.io/v1alpha1	
 kind: Application
@@ -161,7 +161,7 @@ spec:
 	return err
 }
 
-func installArgoApplication(groupPath string, rd *RelizaDeployment, argoNameSpace string) error {
+func installArgoApplication(groupPath string, rd *RearmDeployment, argoNameSpace string) error {
 
 	applicationPath := groupPath + "argo-app.yaml"
 	applicationFile := utils.CreateFile(applicationPath)
