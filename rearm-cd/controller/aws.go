@@ -26,12 +26,12 @@ import (
 	"github.com/relizaio/rearm-cd/cli"
 )
 
-func getRegionFromPaUrl(pa *cli.ProjectAuth) string {
+func getRegionFromPaUrl(pa *cli.ComponentAuth) string {
 	urlParts := strings.Split(pa.Url, ".")
 	return urlParts[3]
 }
 
-func getEcrToken(pa *cli.ProjectAuth) string {
+func getEcrToken(pa *cli.ComponentAuth) string {
 	region := getRegionFromPaUrl(pa)
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(region),

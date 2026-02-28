@@ -80,7 +80,7 @@ func singleLoopRun() {
 			if err != nil {
 				// Errors already logged in processSingleDeployment with full context
 				sugar.Infow("Skipping deployment due to error",
-					"bundle", rd.Bundle,
+					"product", rd.Product,
 					"version", rd.ArtVersion,
 					"namespace", rd.Namespace,
 					"deploymentName", rd.Name)
@@ -170,33 +170,33 @@ func processSingleDeployment(rd *cli.RearmDeployment) error {
 		sugar.Info("SecretNS is null")
 		panic("secretnamespace must be set by this point")
 	}
-	var projAuth cli.ProjectAuth
+	var compAuth cli.ComponentAuth
 	if rd.ArtHash.Value == "" {
 		// No hash means public repo, assume NOCREDS
-		projAuth.Type = "NOCREDS"
+		compAuth.Type = "NOCREDS"
 	} else {
 		digest := cli.ExtractRlzDigestFromCdxDigest(rd.ArtHash)
-		projAuth = cli.GetProjectAuthByArtifactDigest(digest, rd.Namespace)
+		compAuth = cli.GetComponentAuthByArtifactDigest(digest, rd.Namespace)
 	}
 	dirName := rd.Name
 	os.MkdirAll("workspace/"+dirName, 0700)
 	groupPath := "workspace/" + dirName + "/"
 
-	var helmDownloadPa cli.ProjectAuth
+	var helmDownloadPa cli.ComponentAuth
 
 	doInstall := false
 	isError := false
-	helmDownloadPa.Type = projAuth.Type
+	helmDownloadPa.Type = compAuth.Type
 	helmInfo := cli.GetHelmRepoInfoFromDeployment(rd)
-	if projAuth.Type == "ECR" {
+	if compAuth.Type == "ECR" {
 		ecrSecretPath := "workspace/" + dirName + "/ecrreposecret.yaml"
 		ecrSecretFile := utils.CreateFile(ecrSecretPath)
-		cli.ProduceEcrSecretYaml(ecrSecretFile, rd, projAuth, cli.SecretsNamespace)
+		cli.ProduceEcrSecretYaml(ecrSecretFile, rd, compAuth, cli.SecretsNamespace)
 		cli.KubectlApply(ecrSecretPath)
 		cli.WaitUntilSecretCreated("ecr-"+rd.Name, cli.SecretsNamespace)
 		ecrAuthPa := cli.ResolveHelmAuthSecret("ecr-" + dirName)
 		ecrToken := getEcrToken(&ecrAuthPa)
-		var paForPlainSecret cli.ProjectAuth
+		var paForPlainSecret cli.ComponentAuth
 		paForPlainSecret.Login = "AWS"
 		paForPlainSecret.Password = ecrToken
 		paForPlainSecret.Type = "ECR"
@@ -209,19 +209,19 @@ func processSingleDeployment(rd *cli.RearmDeployment) error {
 		helmDownloadPa = cli.ResolveHelmAuthSecret(dirName)
 	}
 
-	if projAuth.Type == "CREDS" {
+	if compAuth.Type == "CREDS" {
 		secretPath := "workspace/" + dirName + "/reposecret.yaml"
 		secretFile := utils.CreateFile(secretPath)
-		cli.ProduceSecretYaml(secretFile, rd, projAuth, cli.SecretsNamespace, helmInfo)
+		cli.ProduceSecretYaml(secretFile, rd, compAuth, cli.SecretsNamespace, helmInfo)
 		cli.KubectlApply(secretPath)
 		cli.WaitUntilSecretCreated(rd.Name, cli.SecretsNamespace)
 		helmDownloadPa = cli.ResolveHelmAuthSecret(dirName)
 	}
 
-	if projAuth.Type == "NOCREDS" {
+	if compAuth.Type == "NOCREDS" {
 		secretPath := "workspace/" + dirName + "/reposecret.yaml"
 		secretFile := utils.CreateFile(secretPath)
-		cli.ProduceSecretYaml(secretFile, rd, projAuth, cli.SecretsNamespace, helmInfo)
+		cli.ProduceSecretYaml(secretFile, rd, compAuth, cli.SecretsNamespace, helmInfo)
 		cli.KubectlApply(secretPath)
 		cli.WaitUntilSecretCreated(rd.Name, cli.SecretsNamespace)
 		helmDownloadPa.Url = rd.ArtUri

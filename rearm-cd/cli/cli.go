@@ -277,9 +277,9 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RearmDepl
 			if comp.MIMEType == HelmMimeType {
 				var rd RearmDeployment
 				rd.Name = resolveDeploymentNameFromString(comp.Group)
-				namespaceBundle := strings.Split(comp.Group, "---")
-				rd.Namespace = namespaceBundle[0]
-				rd.Bundle = namespaceBundle[1]
+				namespaceProduct := strings.Split(comp.Group, "---")
+				rd.Namespace = namespaceProduct[0]
+				rd.Product = namespaceProduct[1]
 				rd.ArtUri = comp.Name
 				rd.ArtVersion = comp.Version
 				appConfig := appConfigMap[rd.Name]
@@ -309,15 +309,15 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RearmDepl
 	return rlzDeployments
 }
 
-func GetProjectAuthByArtifactDigest(delDigest, releaseNamespace string) ProjectAuth {
+func GetComponentAuthByArtifactDigest(delDigest, releaseNamespace string) ComponentAuth {
 	//TODO: use --releasens when api is updated
 	authResp, _, _ := shellout(RearmCliApp + " devops delsecrets --deldigest " + delDigest + " --namespace " + SecretsNamespace + " --instanceuri " + releaseNamespace)
-	var projectAuth map[string]ProjectAuth
-	json.Unmarshal([]byte(authResp), &projectAuth)
-	return projectAuth["artifactDownloadSecrets"]
+	var componentAuth map[string]ComponentAuth
+	json.Unmarshal([]byte(authResp), &componentAuth)
+	return componentAuth["artifactDownloadSecrets"]
 }
 
-func ProduceSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
+func ProduceSecretYaml(w io.Writer, rd *RearmDeployment, compAuth ComponentAuth, namespace string, helmInfo HelmRepoInfo) {
 	secretTmpl :=
 		`apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
@@ -349,8 +349,8 @@ spec:
 	var secTmplRes SecretTemplateResolver
 	secTmplRes.Name = rd.Name
 	secTmplRes.Namespace = namespace
-	secTmplRes.Username = projAuth.Login
-	secTmplRes.Password = projAuth.Password
+	secTmplRes.Username = compAuth.Login
+	secTmplRes.Password = compAuth.Password
 	secTmplRes.Url = helmInfo.RepoHost
 	secTmplRes.EnableOci = strconv.FormatBool(helmInfo.UseOci)
 	if helmInfo.UseOci {
@@ -369,7 +369,7 @@ spec:
 	}
 }
 
-func ProducePlainSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
+func ProducePlainSecretYaml(w io.Writer, rd *RearmDeployment, compAuth ComponentAuth, namespace string, helmInfo HelmRepoInfo) {
 	sugar.Debug("ProducePlainSecretYaml - helmInfo: ", helmInfo)
 	secretTmpl :=
 		`apiVersion: v1
@@ -395,8 +395,8 @@ data:
 	secTmplRes.Name = rd.Name
 	secTmplRes.NameBase64 = base64.StdEncoding.EncodeToString([]byte(rd.Name))
 	secTmplRes.Namespace = namespace
-	secTmplRes.Username = base64.StdEncoding.EncodeToString([]byte(projAuth.Login))
-	secTmplRes.Password = base64.StdEncoding.EncodeToString([]byte(projAuth.Password))
+	secTmplRes.Username = base64.StdEncoding.EncodeToString([]byte(compAuth.Login))
+	secTmplRes.Password = base64.StdEncoding.EncodeToString([]byte(compAuth.Password))
 	secTmplRes.EnableOci = base64.StdEncoding.EncodeToString([]byte(strconv.FormatBool(helmInfo.UseOci)))
 	if helmInfo.UseOci {
 		secTmplRes.Url = base64.StdEncoding.EncodeToString([]byte(helmInfo.RepoHost))
@@ -414,7 +414,7 @@ data:
 	}
 }
 
-func ProduceNoCredSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string, helmInfo HelmRepoInfo) {
+func ProduceNoCredSecretYaml(w io.Writer, rd *RearmDeployment, compAuth ComponentAuth, namespace string, helmInfo HelmRepoInfo) {
 	secretTmpl :=
 		`apiVersion: v1
 kind: Secret
@@ -436,8 +436,8 @@ data:
 	secTmplRes.Name = rd.Name
 	secTmplRes.NameBase64 = base64.StdEncoding.EncodeToString([]byte(rd.Name))
 	secTmplRes.Namespace = namespace
-	secTmplRes.Username = base64.StdEncoding.EncodeToString([]byte(projAuth.Login))
-	secTmplRes.Password = base64.StdEncoding.EncodeToString([]byte(projAuth.Password))
+	secTmplRes.Username = base64.StdEncoding.EncodeToString([]byte(compAuth.Login))
+	secTmplRes.Password = base64.StdEncoding.EncodeToString([]byte(compAuth.Password))
 	secTmplRes.EnableOci = base64.StdEncoding.EncodeToString([]byte(strconv.FormatBool(helmInfo.UseOci)))
 	if helmInfo.UseOci {
 		secTmplRes.Url = base64.StdEncoding.EncodeToString([]byte(helmInfo.RepoHost))
@@ -456,7 +456,7 @@ data:
 	}
 }
 
-func ProduceEcrSecretYaml(w io.Writer, rd *RearmDeployment, projAuth ProjectAuth, namespace string) {
+func ProduceEcrSecretYaml(w io.Writer, rd *RearmDeployment, compAuth ComponentAuth, namespace string) {
 	secretTmpl :=
 		`apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
@@ -483,8 +483,8 @@ spec:
 	var secTmplRes SecretTemplateResolver
 	secTmplRes.Name = "ecr-" + rd.Name
 	secTmplRes.Namespace = namespace
-	secTmplRes.Username = projAuth.Login
-	secTmplRes.Password = projAuth.Password
+	secTmplRes.Username = compAuth.Login
+	secTmplRes.Password = compAuth.Password
 	secTmplRes.Url = rd.ArtUri
 
 	tmpl, err := template.New("secrettmpl").Parse(secretTmpl)
@@ -541,7 +541,7 @@ type SecretTemplateResolver struct {
 type RearmDeployment struct {
 	Name       string
 	Namespace  string
-	Bundle     string
+	Product    string
 	ArtUri     string
 	ArtVersion string
 	ArtHash    cdx.Hash
@@ -549,7 +549,7 @@ type RearmDeployment struct {
 	AppVersion string
 }
 
-type ProjectAuth struct {
+type ComponentAuth struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 	Type     string `json:"type"`

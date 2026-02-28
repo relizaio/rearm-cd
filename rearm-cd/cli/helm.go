@@ -42,8 +42,8 @@ func InstallSealedCertificates() {
 	shellout(HelmApp + " install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller oci://registry.relizahub.com/library/sealed-secrets")
 }
 
-func ResolveHelmAuthSecret(secretName string) ProjectAuth {
-	var pa ProjectAuth
+func ResolveHelmAuthSecret(secretName string) ComponentAuth {
+	var pa ComponentAuth
 	username, _, _ := shellout(KubectlApp + " get secret " + secretName + " -o jsonpath={.data.username} -n " + SecretsNamespace + " | base64 -d")
 	password, _, _ := shellout(KubectlApp + " get secret " + secretName + " -o jsonpath={.data.password} -n " + SecretsNamespace + " | base64 -d")
 	url, _, _ := shellout(KubectlApp + " get secret " + secretName + " -o jsonpath={.data.url} -n " + SecretsNamespace + " | base64 -d")
@@ -113,7 +113,7 @@ type HelmRepoInfo struct {
 	OciUri    string
 }
 
-func DownloadHelmChart(path string, rd *RearmDeployment, pa *ProjectAuth, helmRepoInfo HelmRepoInfo) error {
+func DownloadHelmChart(path string, rd *RearmDeployment, pa *ComponentAuth, helmRepoInfo HelmRepoInfo) error {
 	var err error
 	cleanupHelmChart(path + helmRepoInfo.ChartName)
 
@@ -141,7 +141,7 @@ func DownloadHelmChart(path string, rd *RearmDeployment, pa *ProjectAuth, helmRe
 	}
 	if err != nil {
 		sugar.Errorw("Failed to download helm chart",
-			"bundle", rd.Bundle,
+			"product", rd.Product,
 			"version", rd.ArtVersion,
 			"chartName", helmRepoInfo.ChartName,
 			"namespace", rd.Namespace,
@@ -153,8 +153,8 @@ func DownloadHelmChart(path string, rd *RearmDeployment, pa *ProjectAuth, helmRe
 
 func resolveCustomValuesFromHub(groupPath string, rd *RearmDeployment) bool {
 	present := false
-	custValCmd := RearmCliApp + " devops instprops --property CUSTOM_VALUES --usenamespaceproduct=true --namespace " + rd.Namespace + " --product '" + rd.Bundle + "'"
-	sugar.Debug("Fetching CUSTOM_VALUES for bundle: ", rd.Bundle, " namespace: ", rd.Namespace)
+	custValCmd := RearmCliApp + " devops instprops --property CUSTOM_VALUES --usenamespaceproduct=true --namespace " + rd.Namespace + " --product '" + rd.Product + "'"
+	sugar.Debug("Fetching CUSTOM_VALUES for product: ", rd.Product, " namespace: ", rd.Namespace)
 	sugar.Debug("Command: ", custValCmd)
 	propsFromCli, stderr, err := shellout(custValCmd)
 	if err != nil {
@@ -176,7 +176,7 @@ func resolveCustomValuesFromHub(groupPath string, rd *RearmDeployment) bool {
 		custValues = prop.Value
 		sugar.Debug("CUSTOM_VALUES found, length: ", len(custValues), " bytes")
 	} else {
-		sugar.Debug("No CUSTOM_VALUES found for bundle: ", rd.Bundle, " namespace: ", rd.Namespace)
+		sugar.Debug("No CUSTOM_VALUES found for product: ", rd.Product, " namespace: ", rd.Namespace)
 	}
 
 	if len(custValues) > 0 {
