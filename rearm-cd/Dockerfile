@@ -11,13 +11,13 @@ ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kub
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/cosign.pub ./cosign.pub
 ADD https://get.helm.sh/helm-v3.19.0-linux-${TARGETARCH}.tar.gz ./helm-v3.19.0-linux-${TARGETARCH}.tar.gz
 ADD https://dl.k8s.io/v1.33.7/kubernetes-client-linux-${TARGETARCH}.tar.gz ./kubernetes-client-linux-${TARGETARCH}.tar.gz
-ADD https://d7ge14utcyki8.cloudfront.net/reliza-cli-download/2024.07.10/reliza-cli-2024.07.10-linux-${TARGETARCH}.zip ./reliza-cli-2024.07.10-linux-${TARGETARCH}.zip
+ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.02.0/rearm-26.02.0-linux-${TARGETARCH}.zip ./rearm-26.02.0-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
 RUN sha512sum -c tools.${TARGETARCH}.sha512
 RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
 RUN tar -xzvf kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
 RUN tar -xzvf helm-v3.19.0-linux-${TARGETARCH}.tar.gz
-RUN unzip reliza-cli-2024.07.10-linux-${TARGETARCH}.zip
+RUN unzip rearm-26.02.0-linux-${TARGETARCH}.zip
 RUN tar -xzf kubernetes-client-linux-${TARGETARCH}.tar.gz && \
     mv kubernetes/client/bin/kubectl kubectl
 
@@ -33,10 +33,10 @@ RUN mkdir /app && adduser -u 1000 -D apprunner && chown apprunner:apprunner -R /
 USER apprunner
 RUN mkdir -p /app/workspace && mkdir /app/tools
 USER root
-COPY --from=build-stage --chown=apprunner:apprunner /build/reliza-cd /app/reliza-cd
+COPY --from=build-stage --chown=apprunner:apprunner /build/rearm-cd /app/rearm-cd
 COPY --from=build-stage --chown=apprunner:apprunner /build/kubeseal /app/tools/kubeseal
 COPY --from=build-stage --chown=apprunner:apprunner /build/kubectl /app/tools/kubectl
-COPY --from=build-stage --chown=apprunner:apprunner /build/reliza-cli /app/tools/reliza-cli
+COPY --from=build-stage --chown=apprunner:apprunner /build/rearm /app/tools/rearm
 COPY --from=build-stage --chown=apprunner:apprunner /build/linux-${TARGETARCH}/helm /app/tools/helm
 COPY --chown=apprunner:apprunner entrypoint.sh /entrypoint.sh
 
