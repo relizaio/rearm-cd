@@ -44,7 +44,7 @@ const (
 var (
 	sugar            *zap.SugaredLogger
 	SecretsNamespace string
-	RearmNamespace   string
+	RearmCdNamespace string
 	watcherImage     string
 	enableWatcher    bool
 	argoInfo         ArgoInfo
@@ -69,16 +69,16 @@ func init() {
 	sugar = logger.Sugar()
 
 	if len(os.Getenv("MY_NAMESPACE")) > 0 {
-		RearmNamespace = os.Getenv("MY_NAMESPACE")
+		RearmCdNamespace = os.Getenv("MY_NAMESPACE")
 	} else {
-		RearmNamespace = "argocd"
+		RearmCdNamespace = "argocd"
 	}
-	SecretsNamespace = RearmNamespace
+	SecretsNamespace = RearmCdNamespace
 
 	if len(os.Getenv("WATCHER_IMAGE")) > 0 {
 		watcherImage = os.Getenv("WATCHER_IMAGE")
 	} else {
-		watcherImage = "relizaio/reliza-watcher"
+		watcherImage = "registry.relizahub.com/library/rearm-watcher-app"
 	}
 	enableWatcher = true
 	if len(os.Getenv("ENABLE_WATCHER")) > 0 {

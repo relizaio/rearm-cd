@@ -72,15 +72,15 @@ func isWatcherConfigUpdated(namespacesForWatcherStr string) bool {
 }
 
 func installWatcherRoutine(namespacesForWatcherStr string) {
-	dryRunShellout(KubectlApp + " create secret generic reliza-watcher -n " + RearmNamespace + " --from-literal=reliza-api-id=" + os.Getenv("APIKEYID") + " --from-literal=reliza-api-key=" + os.Getenv("APIKEY") + " --dry-run=client -o yaml | " + KubectlApp + " apply -f -")
-	hubUri := os.Getenv("URI")
-	if len(hubUri) < 1 {
-		hubUri = "https://app.relizahub.com"
+	dryRunShellout(KubectlApp + " create secret generic rearm-watcher -n " + RearmCdNamespace + " --from-literal=rearm-api-id=" + os.Getenv("APIKEYID") + " --from-literal=rearm-api-key=" + os.Getenv("APIKEY") + " --dry-run=client -o yaml | " + KubectlApp + " apply -f -")
+	rearmUri := os.Getenv("URI")
+	if len(rearmUri) < 1 {
+		sugar.Fatal("URI environment variable must be defined for watcher installation")
 	}
 	retryLeft := 3
 	watcherInstalled := false
 	for !watcherInstalled && retryLeft > 0 {
-		_, _, err := dryRunShellout(HelmApp + " upgrade --install reliza-watcher -n " + RearmNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set hubUri=" + hubUri + " --version 0.0.2 oci://registry.relizahub.com/library/reliza-watcher")
+		_, _, err := dryRunShellout(HelmApp + " upgrade --install rearm-watcher -n " + RearmCdNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set rearmUri=" + rearmUri + " --version 0.0.0 oci://registry.relizahub.com/library/rearm-watcher")
 		if err == nil {
 			watcherInstalled = true
 		} else {
