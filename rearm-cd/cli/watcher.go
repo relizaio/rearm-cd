@@ -80,7 +80,7 @@ func installWatcherRoutine(namespacesForWatcherStr string) {
 	retryLeft := 3
 	watcherInstalled := false
 	for !watcherInstalled && retryLeft > 0 {
-		_, _, err := dryRunShellout(HelmApp + " upgrade --install rearm-watcher -n " + RearmCdNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set rearmUri=" + rearmUri + " --version 0.1.2 oci://registry.relizahub.com/library/rearm-watcher")
+		_, _, err := dryRunShellout(HelmApp + " upgrade --install rearm-watcher -n " + RearmCdNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set rearmUri=" + rearmUri + " --version 0.1.7 oci://registry.relizahub.com/library/rearm-watcher")
 		if err == nil {
 			watcherInstalled = true
 		} else {
