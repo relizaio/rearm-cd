@@ -1,0 +1,26 @@
+# Default values for rearm-watcher.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+enabled: true
+
+replicaCount: 1
+
+image:
+  repository: registry.relizahub.com/library/rearm-watcher-app:26.03.2@sha256:fc0411fbab4de5d8f16344f1d806b23c379a9bb80ac81b5b5d233c5e4994ee16
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+createServiceAccount: true
+
+namespace: allnamespaces
+sender: default
+
+rearmUri: "" # must be defined
+
+create_secret_in_chart: none # or "regular" for plane secret or "sealed" for bitnami sealed secrets
+rearmApiId: placeholder
+rearmApiKey: placeholder
+sealed_secrets_scope: namespace-wide # other possible values: strict, cluster-wide, see https://github.com/bitnami-labs/sealed-secrets#scopes

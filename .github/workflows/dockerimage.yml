@@ -49,5 +49,24 @@ jobs:
           enable_sbom: true
           source_code_sbom_type: none
           enable_public_cosign_sigstore: true
-          enable_codeql: false  
-
+          enable_codeql: false
+  build-rearm-watcher-helm:
+    permissions:
+      contents: write
+      id-token: write
+    name: Build ReARM Watcher Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build ReARM Watcher Helm Chart
+        uses: relizaio/rearm-helm-action@b4ad74fd91ee3002c66f43ace2cff03ee2457d6a # v2.0.0
+        with:
+          registry_username: ${{ secrets.DOCKER_LOGIN }}
+          registry_password: ${{ secrets.DOCKER_TOKEN }}
+          registry_host: registry.relizahub.com/library
+          helm_chart_name: rearm-watcher
+          rearm_api_id: ${{ secrets.REARM_REARM_WATCHER_HELM_API_ID }}
+          rearm_api_key: ${{ secrets.REARM_REARM_WATCHER_HELM_API_KEY }}
+          path: deploy/rearm-watcher-helm
+          rearm_api_url: https://reliza.rearmhq.com
+          enable_sbom: true
+          enable_public_cosign_sigstore: true

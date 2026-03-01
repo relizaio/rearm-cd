@@ -1,0 +1,44 @@
+{{- if .Values.enabled}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "rearm-watcher.fullname" . }}-deployment
+  labels:
+    app.kubernetes.io/name: {{ include "rearm-watcher.fullname" . }}-deployment  
+    {{- include "rearm-watcher.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "rearm-watcher.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "rearm-watcher.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ $.Release.Name }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.image.repository }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: REARM_URI
+            value: {{ .Values.rearmUri }}
+          - name: NAMESPACE
+            value: {{ .Values.namespace }}
+          - name: SENDER_ID
+            value: {{.Values.sender}}
+          - name: REARM_API_ID
+            valueFrom:
+              secretKeyRef:
+                name: rearm-watcher
+                key: rearm-api-id
+          - name: REARM_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: rearm-watcher
+                key: rearm-api-key
+{{- end }}
