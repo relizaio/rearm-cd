@@ -4,6 +4,22 @@ ReARM CD is a tool that acts as an agent on the Kubernetes side to connect the i
 
 The recommended way to install is to use included Helm Chart (Will be available soon).
 
+## Installation via Helm Chart
+1. Create namespace
+```
+kubectl create namespace rearm-cd
+```
+2. Create secret
+```
+kubectl create secret generic rearm-cd --from-literal=APIKEYID=your-rearm-api-id --from-literal=APIKEY=your-rearm-api-key --from-literal=URI=your-rearm-uri -n rearm-cd
+```
+3. Install Helm Chart
+```
+helm install -n rearm-cd rearm-cd oci://registry.relizahub.com/library/rearm-cd
+```
+
+
+
 ## Dry Run Mode
 
 To enable dry run mode, set the `DRY_RUN` environment variable to `true`:
