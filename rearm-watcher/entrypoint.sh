@@ -1,10 +1,12 @@
 #!/bin/bash
 
-if [ ! -z "$REARM_URI" ]
+if [ -z "$REARM_URI" ]
 then
-    echo "REARM_URI is set to $REARM_URI"
+    echo "REARM_URI must be defined"
     exit 1
 fi
+
+echo "REARM_URI is set to $REARM_URI"
 
 # cache to limit api usage
 record_timestamp=0
