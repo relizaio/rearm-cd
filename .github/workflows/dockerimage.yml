@@ -6,7 +6,7 @@ jobs:
   build-rearm-cd-app:
     permissions:
       id-token: write
-    name: Build And Push
+    name: Build ReARM CD App
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM CD App
@@ -30,7 +30,7 @@ jobs:
   build-rearm-watcher-app:
     permissions:
       id-token: write
-    name: Build And Push
+    name: Build ReARM Watcher App
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM Watcher App

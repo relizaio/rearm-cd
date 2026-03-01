@@ -23,7 +23,7 @@ send_data () {
             kubectl get po -n $ns -o json | jq "[.items[] | {namespace:.metadata.namespace, labels:.metadata.labels, annotations:.metadata.annotations, pod:.metadata.name, status:.status.containerStatuses[]}]" > /resources/images_to_send
             echo "$(date) shipping images for $ns namespace"
             
-            /app/app instdata -u $REARM_URI -i $REARM_API_ID -k $REARM_API_KEY --sender $SENDER_ID$ns --namespace $ns --imagestyle k8s --imagefile /resources/images_to_send
+            rearm instdata -u $REARM_URI -i $REARM_API_ID -k $REARM_API_KEY --sender $SENDER_ID$ns --namespace $ns --imagestyle k8s --imagefile /resources/images_to_send
             
             # record last sent timestamp
             if [ $record_timestamp -eq 1 ]
