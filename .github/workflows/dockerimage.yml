@@ -23,7 +23,7 @@ jobs:
           platform_architectures: 'linux/amd64,linux/arm64'
           rearm_api_url: https://reliza.rearmhq.com
           enable_sbom: true
-          source_code_sbom_type: other
+          source_code_sbom_type: go
           enable_public_cosign_sigstore: true
           enable_codeql: true
           codeql_language: go         
