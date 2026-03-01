@@ -13,7 +13,7 @@ jobs:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
           registry_host: registry.relizahub.com
-          image_namespace: library
+          image_namespace: registry.relizahub.com/library
           image_name: rearm-cd-app
           rearm_api_id: ${{ secrets.REARM_REARM_CD_API_ID }}
           rearm_api_key: ${{ secrets.REARM_REARM_CD_API_KEY }}
