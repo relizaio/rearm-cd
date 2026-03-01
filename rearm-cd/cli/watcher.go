@@ -72,8 +72,8 @@ func isWatcherConfigUpdated(namespacesForWatcherStr string) bool {
 }
 
 func installWatcherRoutine(namespacesForWatcherStr string) {
-	dryRunShellout(KubectlApp + " create secret generic rearm-watcher -n " + RearmCdNamespace + " --from-literal=rearm-api-id=" + os.Getenv("APIKEYID") + " --from-literal=rearm-api-key=" + os.Getenv("APIKEY") + " --dry-run=client -o yaml | " + KubectlApp + " apply -f -")
-	rearmUri := os.Getenv("URI")
+	dryRunShellout(KubectlApp + " create secret generic rearm-watcher -n " + RearmCdNamespace + " --from-literal=rearm-api-id=" + os.Getenv("REARM_APIKEYID") + " --from-literal=rearm-api-key=" + os.Getenv("REARM_APIKEY") + " --dry-run=client -o yaml | " + KubectlApp + " apply -f -")
+	rearmUri := os.Getenv("REARM_URI")
 	if len(rearmUri) < 1 {
 		sugar.Fatal("URI environment variable must be defined for watcher installation")
 	}
