@@ -210,12 +210,18 @@ func processSingleDeployment(rd *cli.RearmDeployment) error {
 	}
 
 	if compAuth.Type == "CREDS" {
+		sugar.Debug("CREDS auth type detected for deployment: ", rd.Name, ", namespace: ", rd.Namespace)
 		secretPath := "workspace/" + dirName + "/reposecret.yaml"
+		sugar.Debug("Creating sealed secret at: ", secretPath)
 		secretFile := utils.CreateFile(secretPath)
 		cli.ProduceSecretYaml(secretFile, rd, compAuth, cli.SecretsNamespace, helmInfo)
+		sugar.Debug("Applying sealed secret for: ", rd.Name)
 		cli.KubectlApply(secretPath)
+		sugar.Debug("Waiting for secret to be created: ", rd.Name, " in namespace: ", cli.SecretsNamespace)
 		cli.WaitUntilSecretCreated(rd.Name, cli.SecretsNamespace)
+		sugar.Debug("Resolving helm auth secret for: ", dirName)
 		helmDownloadPa = cli.ResolveHelmAuthSecret(dirName)
+		sugar.Debug("Helm download auth resolved, type: ", helmDownloadPa.Type)
 	}
 
 	if compAuth.Type == "NOCREDS" {
