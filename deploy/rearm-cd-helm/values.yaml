@@ -1,0 +1,19 @@
+mode: STANDALONE # options: STANDALONE, EXISTING_ARGO, NEW_ARGO
+imagePullPolicy: IfNotPresent
+images:
+  rearmcdImage: registry.relizahub.com/library/rearm-cd-app:26.03.7@sha256:00fd79534a921b3091b26bac012a1489f94bf93e3e2e5ddf13577456e0d04be4
+
+enableWatcher: true
+backup:
+  enabled: false
+  schedule: "0 2 * * *" # cron schedule for backup, default is 2 AM daily
+  awsRegion: "ca-central-1"
+  prefix: "rearm-cd-backup"
+
+storageSize: 1G
+
+create_secret_in_chart: none # regular, none
+rearmUri: https://demo.rearmhq.com
+rearmApiId: placeholder # instance api id
+rearmApiKey: placeholder # instance api key
+argoHelmVersion: 6.6.0

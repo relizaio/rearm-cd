@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-rearm-cd
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: rearm-cd
+spec:
+  replicas: 1
+  serviceName: "rearm-cd"
+  selector:
+    matchLabels:
+      name: {{ .Release.Name }}-loop
+      app: rearm-cd
+  template:
+    metadata:
+      labels:
+        name: {{ .Release.Name }}-loop
+        app: rearm-cd
+    spec:
+      serviceAccount: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: {{ .Chart.Name }}-rearm-cd
+          image: "{{ .Values.images.rearmcdImage }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+          - name: MY_NAMESPACE
+            value: {{ .Release.Namespace }}
+          - name: MODE
+            value: {{ .Values.mode }}
+          - name: ARGO_HELM_VERSION
+            value: {{ .Values.argoHelmVersion }}
+          - name: ENABLE_WATCHER
+            value: {{ .Values.enableWatcher | quote }}
+          - name: WATCHER_IMAGE
+            value: {{ .Values.images.watcherImage | quote }}
+          - name: BACKUP_ENABLED
+            value: {{ .Values.backup.enabled | quote }}
+          - name: BACKUP_SCHEDULE
+            value: {{ .Values.backup.schedule | quote }}
+          - name: AWS_REGION
+            value: {{ .Values.backup.awsRegion | quote }}
+          - name: BACKUP_PREFIX
+            value: {{ .Values.backup.prefix | quote }}
+          envFrom:
+          - secretRef:
+              name: rearm-cd
+          volumeMounts:
+          - mountPath: "/app/workspace"
+            name: rearm-cd-workspace
+  volumeClaimTemplates:
+    - metadata:
+        name: rearm-cd-workspace
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: {{ $.Values.storageSize }}
