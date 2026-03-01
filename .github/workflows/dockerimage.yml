@@ -8,12 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: RelizaHub Build And Submit Release metadata action
-        uses: relizaio/reliza-docker-action@2.0
+        uses: relizaio/rearm-docker-action@d3dd40156a479abe47f88896ac62b7dff7bd8101 # v1.7.0
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
-          image_namespace: ${{ secrets.IMAGE_NAMESPACE }}
-          image_name: ${{ secrets.IMAGE_NAME }}
-          reliza_api_id: ${{ secrets.RELIZA_API_ID }}
-          reliza_api_key: ${{ secrets.RELIZA_API_KEY }}
+          image_namespace: registry.relizahub.com/library
+          image_name: rearm-cd-app
+          rearm_api_id: ${{ secrets.REARM_REARM_CD_API_ID }}
+          rearm_api_key: ${{ secrets.REARM_REARM_CD_API_KEY }}
+          path: rearm-cd
           platform_architectures: 'linux/amd64,linux/arm64'
+          rearm_api_url: https://reliza.rearmhq.com
+          enable_sbom: true
+          source_code_sbom_type: other
+          enable_public_cosign_sigstore: true
+          enable_codeql: true
+          codeql_language: go         
+
