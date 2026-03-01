@@ -11,7 +11,7 @@ kubectl create namespace rearm-cd
 ```
 2. Create secret
 ```
-kubectl create secret generic rearm-cd --from-literal=APIKEYID=your-rearm-api-id --from-literal=APIKEY=your-rearm-api-key --from-literal=URI=your-rearm-uri -n rearm-cd
+kubectl create secret generic rearm-cd --from-literal=REARM_APIKEYID=your-rearm-api-id --from-literal=REARM_APIKEY=your-rearm-api-key --from-literal=REARM_URI=your-rearm-uri -n rearm-cd
 ```
 3. Install Helm Chart
 ```
