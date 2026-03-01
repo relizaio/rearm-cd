@@ -9,7 +9,7 @@ jobs:
     name: Build And Push
     runs-on: ubuntu-latest
     steps:
-      - name: RelizaHub Build And Submit Release metadata action
+      - name: Build ReARM CD App
         uses: relizaio/rearm-docker-action@6225feac274345edb8271119d6e942536bcd3c41 # v1.7.1
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
@@ -33,7 +33,7 @@ jobs:
     name: Build And Push
     runs-on: ubuntu-latest
     steps:
-      - name: RelizaHub Build And Submit Release metadata action
+      - name: Build ReARM Watcher App
         uses: relizaio/rearm-docker-action@6225feac274345edb8271119d6e942536bcd3c41 # v1.7.1
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
@@ -44,7 +44,7 @@ jobs:
           rearm_api_id: ${{ secrets.REARM_REARM_WATCHER_API_ID }}
           rearm_api_key: ${{ secrets.REARM_REARM_WATCHER_API_KEY }}
           path: rearm-watcher
-          platform_architectures: 'linux/amd64,linux/arm64'
+          platform_architectures: 'linux/amd64'
           rearm_api_url: https://reliza.rearmhq.com
           enable_sbom: true
           source_code_sbom_type: none
