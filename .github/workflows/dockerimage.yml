@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: RelizaHub Build And Submit Release metadata action
-        uses: relizaio/rearm-docker-action@d3dd40156a479abe47f88896ac62b7dff7bd8101 # v1.7.0
+        uses: relizaio/rearm-docker-action@a38ab0eed31e309fc5c1ca3c7853fa2c53f5684f # v1.7.1
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
