@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM Watcher Helm Chart
-        uses: relizaio/rearm-helm-action@322aa46861ef7b602e21cc79d54ae7593abc5d31 # v2.0.0
+        uses: relizaio/rearm-helm-action@2c549ffdb0b6f181c70b15b2967a79ca52848f95 # v2.0.0
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM CD Helm Chart
-        uses: relizaio/rearm-helm-action@322aa46861ef7b602e21cc79d54ae7593abc5d31 # v2.0.0
+        uses: relizaio/rearm-helm-action@2c549ffdb0b6f181c70b15b2967a79ca52848f95 # v2.0.0
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
