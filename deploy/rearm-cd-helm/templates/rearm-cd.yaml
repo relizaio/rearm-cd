@@ -34,8 +34,14 @@ spec:
             value: {{ .Values.argoHelmVersion }}
           - name: ENABLE_WATCHER
             value: {{ .Values.enableWatcher | quote }}
+          {{- if .Values.watcherImage }}
           - name: WATCHER_IMAGE
-            value: {{ .Values.images.watcherImage | quote }}
+            value: {{ .Values.watcherImage | quote }}
+          {{- end }}
+          - name: WATCHER_HELM_VERSION
+            value: {{ .Values.watcherHelmVersion | quote }}
+          - name: WATCHER_HELM_CHART
+            value: {{ .Values.watcherHelmChart | quote }}
           - name: BACKUP_ENABLED
             value: {{ .Values.backup.enabled | quote }}
           - name: BACKUP_SCHEDULE

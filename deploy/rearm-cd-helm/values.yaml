@@ -1,9 +1,11 @@
 mode: STANDALONE # options: STANDALONE, EXISTING_ARGO, NEW_ARGO
 imagePullPolicy: IfNotPresent
 images:
-  rearmcdImage: registry.relizahub.com/library/rearm-cd-app:26.03.12@sha256:db7acd751bb6d67313f7570ec87381393d726ce79f7372aee52f4194f53693b7
+  rearmcdImage: registry.relizahub.com/library/rearm-cd-app:26.03.13@sha256:aa9cd8b25d7765399974b883532d80cf7a37360e66f6771f52b0c279a7a9a979
 
 enableWatcher: true
+watcherHelmVersion: "0.1.8"
+watcherHelmChart: "oci://registry.relizahub.com/library/rearm-watcher"
 backup:
   enabled: false
   schedule: "0 2 * * *" # cron schedule for backup, default is 2 AM daily
