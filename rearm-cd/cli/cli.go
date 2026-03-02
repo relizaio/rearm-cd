@@ -42,14 +42,16 @@ const (
 )
 
 var (
-	sugar            *zap.SugaredLogger
-	SecretsNamespace string
-	RearmCdNamespace string
-	watcherImage     string
-	enableWatcher    bool
-	argoInfo         ArgoInfo
-	EnvMode          string
-	DryRun           bool
+	sugar              *zap.SugaredLogger
+	SecretsNamespace   string
+	RearmCdNamespace   string
+	watcherImage       string
+	watcherHelmVersion string
+	watcherHelmChart   string
+	enableWatcher      bool
+	argoInfo           ArgoInfo
+	EnvMode            string
+	DryRun             bool
 )
 
 const (
@@ -75,10 +77,16 @@ func init() {
 	}
 	SecretsNamespace = RearmCdNamespace
 
-	if len(os.Getenv("WATCHER_IMAGE")) > 0 {
-		watcherImage = os.Getenv("WATCHER_IMAGE")
+	watcherImage = os.Getenv("WATCHER_IMAGE")
+	if len(os.Getenv("WATCHER_HELM_VERSION")) > 0 {
+		watcherHelmVersion = os.Getenv("WATCHER_HELM_VERSION")
 	} else {
-		watcherImage = "registry.relizahub.com/library/rearm-watcher-app"
+		watcherHelmVersion = "0.1.8"
+	}
+	if len(os.Getenv("WATCHER_HELM_CHART")) > 0 {
+		watcherHelmChart = os.Getenv("WATCHER_HELM_CHART")
+	} else {
+		watcherHelmChart = "oci://registry.relizahub.com/library/rearm-watcher"
 	}
 	enableWatcher = true
 	if len(os.Getenv("ENABLE_WATCHER")) > 0 {

@@ -77,10 +77,14 @@ func installWatcherRoutine(namespacesForWatcherStr string) {
 	if len(rearmUri) < 1 {
 		sugar.Fatal("URI environment variable must be defined for watcher installation")
 	}
+	watcherImageSet := ""
+	if len(watcherImage) > 0 {
+		watcherImageSet = " --set image.repository=" + watcherImage
+	}
 	retryLeft := 3
 	watcherInstalled := false
 	for !watcherInstalled && retryLeft > 0 {
-		_, _, err := dryRunShellout(HelmApp + " upgrade --install rearm-watcher -n " + RearmCdNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set rearmUri=" + rearmUri + " --version 0.1.7 oci://registry.relizahub.com/library/rearm-watcher")
+		_, _, err := dryRunShellout(HelmApp + " upgrade --install rearm-watcher -n " + RearmCdNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set rearmUri=" + rearmUri + watcherImageSet + " --version " + watcherHelmVersion + " " + watcherHelmChart)
 		if err == nil {
 			watcherInstalled = true
 		} else {
