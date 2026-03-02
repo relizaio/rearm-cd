@@ -176,7 +176,7 @@ func processSingleDeployment(rd *cli.RearmDeployment) error {
 		compAuth.Type = "NOCREDS"
 	} else {
 		digest := cli.ExtractRlzDigestFromCdxDigest(rd.ArtHash)
-		compAuth = cli.GetComponentAuthByArtifactDigest(digest, rd.Namespace)
+		compAuth = cli.GetComponentAuthByDeliverableDigest(digest, rd.Namespace)
 	}
 	dirName := rd.Name
 	os.MkdirAll("workspace/"+dirName, 0700)

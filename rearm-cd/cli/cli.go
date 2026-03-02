@@ -298,7 +298,7 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RearmDepl
 					rd.ArtHash = hashes[0]
 				} else {
 					// Helm charts may not have hashes - use empty hash for public repos
-					sugar.Debug("No hash found for Helm artifact = " + rd.ArtUri + ", assuming public repository")
+					sugar.Debug("No hash found for Helm deliverable = " + rd.ArtUri + ", assuming public repository")
 					rd.ArtHash = cdx.Hash{Algorithm: cdx.HashAlgoSHA256, Value: ""}
 				}
 				rlzDeployments = append(rlzDeployments, rd)
@@ -309,12 +309,12 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RearmDepl
 	return rlzDeployments
 }
 
-func GetComponentAuthByArtifactDigest(delDigest, releaseNamespace string) ComponentAuth {
+func GetComponentAuthByDeliverableDigest(delDigest, releaseNamespace string) ComponentAuth {
 	//TODO: use --releasens when api is updated
 	authResp, _, _ := shellout(RearmCliApp + " devops delsecrets --deldigest " + delDigest + " --namespace " + SecretsNamespace + " --instanceuri " + releaseNamespace)
 	var componentAuth map[string]ComponentAuth
 	json.Unmarshal([]byte(authResp), &componentAuth)
-	return componentAuth["artifactDownloadSecrets"]
+	return componentAuth["deliverableDownloadSecrets"]
 }
 
 func ProduceSecretYaml(w io.Writer, rd *RearmDeployment, compAuth ComponentAuth, namespace string, helmInfo HelmRepoInfo) {
