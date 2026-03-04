@@ -69,10 +69,23 @@ func isWatcherConfigUpdated(namespacesForWatcherStr string) bool {
 		isDiff = true
 	} else if err != nil {
 		sugar.Error(err)
+		return false
 	}
 
 	if !isDiff {
 		if 0 != strings.Compare(namespacesForWatcherStr, string(prevVal)) {
+			isDiff = true
+		}
+	}
+
+	if !isDiff {
+		prevVersion, err := os.ReadFile(watcherHelmLastKnownVersion)
+		if err != nil && os.IsNotExist(err) {
+			isDiff = true
+		} else if err != nil {
+			sugar.Error(err)
+			return false
+		} else if 0 != strings.Compare(watcherHelmVersion, string(prevVersion)) {
 			isDiff = true
 		}
 	}
