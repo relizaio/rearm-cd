@@ -1,7 +1,7 @@
 mode: STANDALONE # options: STANDALONE, EXISTING_ARGO, NEW_ARGO
 imagePullPolicy: IfNotPresent
 images:
-  rearmcdImage: registry.relizahub.com/library/rearm-cd-app:26.03.14@sha256:135d0b2088c50373388106cd05102facac7a4a504096a0d647c1c7b2cf2861f0
+  rearmcdImage: registry.relizahub.com/library/rearm-cd-app:26.03.15@sha256:ab4178b836bf736555e7f2c01651629adc86189c87c9c14a53272d64b299de9f
 
 enableWatcher: true
 watcherHelmVersion: "0.1.9"
