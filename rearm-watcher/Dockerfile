@@ -19,11 +19,12 @@ RUN apk add --update --no-cache openssl bash jq && \
     mkdir /app && adduser -u 1000 -D apprunner && chown apprunner:apprunner -R /app && \
     mkdir /resources && chown apprunner:apprunner /resources
 COPY --chown=apprunner:apprunner entrypoint.sh /
-RUN chmod 0500 /entrypoint.sh
+RUN chmod 0550 /entrypoint.sh
 ENV NAMESPACE=allnamespaces
 ENV SENDER_ID=default
 COPY --from=build-stage --chown=apprunner:apprunner /build/kubectl /bin/kubectl
 COPY --from=build-stage --chown=apprunner:apprunner /build/rearm /bin/rearm
+RUN chmod 0550 /bin/kubectl /bin/rearm
 USER apprunner
 RUN echo "{}" > /resources/images
 LABEL git_commit=$GIT_COMMIT
