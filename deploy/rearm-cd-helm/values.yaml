@@ -4,7 +4,7 @@ images:
   rearmcdImage: registry.relizahub.com/library/rearm-cd-app:26.03.13@sha256:aa9cd8b25d7765399974b883532d80cf7a37360e66f6771f52b0c279a7a9a979
 
 enableWatcher: true
-watcherHelmVersion: "0.1.8"
+watcherHelmVersion: "0.1.9"
 watcherHelmChart: "oci://registry.relizahub.com/library/rearm-watcher"
 backup:
   enabled: false
