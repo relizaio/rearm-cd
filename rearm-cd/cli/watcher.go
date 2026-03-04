@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	watcherPath                = "workspace/watcher/"
-	watcherLastKnownNamespaces = watcherPath + "lastKnownNamespaces"
+	watcherPath                 = "workspace/watcher/"
+	watcherLastKnownNamespaces  = watcherPath + "lastKnownNamespaces"
+	watcherHelmLastKnownVersion = watcherPath + "lastKnownWatcherHelmVersion"
 )
 
 func InstallWatcher(namespacesForWatcher *map[string]bool) {
@@ -52,6 +53,13 @@ func recordWatcherConfig(namespacesForWatcherStr string) {
 	}
 	recFile.Write([]byte(namespacesForWatcherStr))
 	recFile.Close()
+
+	recVersionFile, err := os.Create(watcherHelmLastKnownVersion)
+	if err != nil {
+		sugar.Error(err)
+	}
+	recVersionFile.Write([]byte(watcherHelmVersion))
+	recVersionFile.Close()
 }
 
 func isWatcherConfigUpdated(namespacesForWatcherStr string) bool {
