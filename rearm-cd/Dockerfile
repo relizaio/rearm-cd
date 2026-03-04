@@ -37,7 +37,7 @@ COPY --from=build-stage --chown=apprunner:apprunner /build/rearm /app/tools/rear
 COPY --from=build-stage --chown=apprunner:apprunner /build/linux-${TARGETARCH}/helm /app/tools/helm
 COPY --chown=apprunner:apprunner entrypoint.sh /entrypoint.sh
 
-RUN chmod 0700 /entrypoint.sh && chmod 0700 /app/tools/kubectl
+RUN chmod 0550 /entrypoint.sh && chmod 0550 /app/tools/kubectl
 USER apprunner
 RUN echo "version=$VERSION" > /app/version && echo "commit=$GIT_COMMIT" >> /app/version && echo "branch=$GIT_BRANCH" >> /app/version
 
