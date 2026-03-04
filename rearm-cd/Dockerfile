@@ -9,7 +9,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz ./kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/cosign.pub ./cosign.pub
-ADD https://get.helm.sh/helm-v3.19.0-linux-${TARGETARCH}.tar.gz ./helm-v3.19.0-linux-${TARGETARCH}.tar.gz
+ADD https://get.helm.sh/helm-v3.20.0-linux-${TARGETARCH}.tar.gz ./helm-v3.20.0-linux-${TARGETARCH}.tar.gz
 ADD https://dl.k8s.io/v1.33.8/bin/linux/${TARGETARCH}/kubectl ./kubectl
 ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.02.2/rearm-26.02.2-linux-${TARGETARCH}.zip ./rearm-26.02.2-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
