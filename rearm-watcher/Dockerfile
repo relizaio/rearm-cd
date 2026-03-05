@@ -17,7 +17,7 @@ ARG VERSION=not_versioned
 USER root
 RUN apk add --update --no-cache openssl bash jq && \
     mkdir /app && adduser -u 1000 -D apprunner && chown apprunner:apprunner -R /app && \
-    mkdir /resources && chown apprunner:apprunner /resources
+    mkdir -p /resources/ns && chown apprunner:apprunner /resources && chown apprunner:apprunner /resources/ns
 COPY --chown=apprunner:apprunner entrypoint.sh /
 RUN chmod 0550 /entrypoint.sh
 ENV NAMESPACE=allnamespaces
