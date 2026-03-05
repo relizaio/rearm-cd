@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -355,45 +356,17 @@ func StreamHelmChartMetadataToHub(ppn *PathsPerNamespace) {
 		images += " " + getHelmChartDigest(groupPath)
 	}
 
-	doStream := true
-
 	if len(images) < 1 {
 		images = " " // required otherwise cli looks for images in file
-	} else {
-		doStream = isHelmWatcherStreamDiff(ppn, images)
 	}
 
-	sugar.Debug("Helm images = ", images, " , doStream = ", doStream)
-
-	if doStream {
-		sendMetaCmd := RearmCliApp + " devops instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace
-		sugar.Info(sendMetaCmd)
-		_, _, err := shellout(RearmCliApp + " devops instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace)
-		if err == nil {
-			recordStreamedHelmData(ppn, images)
-		}
+	sendMetaCmd := RearmCliApp + " devops instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace
+	sugar.Info(sendMetaCmd)
+	_, _, err := shellout(RearmCliApp + " devops instdata --images \"" + images + "\" --namespace " + ppn.Namespace + " --sender helmsender" + ppn.Namespace)
+	if err == nil {
+		recordStreamedHelmData(ppn, images)
 	}
-}
-
-func isHelmWatcherStreamDiff(ppn *PathsPerNamespace, curImages string) bool {
-	isDiff := false
-	prevStream, err := os.ReadFile("workspace/" + ppn.Namespace + WatcherHelmDataSuffix)
-	if err != nil && os.IsNotExist(err) {
-		isDiff = true
-	} else if err != nil {
-		sugar.Error(err)
-		isDiff = true
-	}
-
-	if !isDiff {
-		var prevNsi NamespaceImages
-		json.Unmarshal(prevStream, &prevNsi)
-
-		if 0 != strings.Compare(curImages, prevNsi.Images) {
-			isDiff = true
-		}
-	}
-	return isDiff
+	time.Sleep(1 * time.Second)
 }
 
 func getHelmChartDigest(groupPath string) string {
