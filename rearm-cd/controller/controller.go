@@ -73,10 +73,11 @@ func singleLoopRun() {
 		namespacesForWatcher := make(map[string]bool)
 
 		isError := false
+		didDeploy := false
 
 		for _, rd := range rlzDeployments {
 			existingDeployments[rd.Name] = true
-			err = processSingleDeployment(&rd)
+			deployed, err := processSingleDeployment(&rd)
 			if err != nil {
 				// Errors already logged in processSingleDeployment with full context
 				sugar.Infow("Skipping deployment due to error",
@@ -86,6 +87,9 @@ func singleLoopRun() {
 					"deploymentName", rd.Name)
 			}
 			isError = (err != nil)
+			if deployed {
+				didDeploy = true
+			}
 			namespacesForWatcher[rd.Namespace] = true
 			cli.CreateNamespaceIfMissing(rd.Namespace)
 		}
@@ -96,7 +100,9 @@ func singleLoopRun() {
 			deleteObsoleteDeployments(&existingDeployments)
 		}
 
-		helmDataStreamToHub(&existingDeployments)
+		if didDeploy {
+			helmDataStreamToHub(&existingDeployments)
+		}
 	}
 }
 
@@ -165,7 +171,7 @@ func collectExistingDeployments() map[string]bool {
 	return existingDeployments
 }
 
-func processSingleDeployment(rd *cli.RearmDeployment) error {
+func processSingleDeployment(rd *cli.RearmDeployment) (bool, error) {
 	if cli.SecretsNamespace == "" {
 		sugar.Info("SecretNS is null")
 		panic("secretnamespace must be set by this point")
@@ -295,5 +301,5 @@ func processSingleDeployment(rd *cli.RearmDeployment) error {
 		cli.RecordDeployedData(groupPath, rd)
 	}
 
-	return err
+	return !isError && doInstall, err
 }
