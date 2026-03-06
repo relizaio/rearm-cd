@@ -78,7 +78,9 @@ func GetHelmRepoInfoFromDeployment(rd *RearmDeployment) HelmRepoInfo {
 	if strings.Contains(rd.ArtUri, "oci://") {
 		helmRepoInfo.UseOci = true
 		helmRepoInfo.OciUri = rd.ArtUri
-	} else if strings.Contains(rd.ArtUri, "azurecr.io") || strings.Contains(rd.ArtUri, ".ecr.") || strings.Contains(rd.ArtUri, ".pkg.dev") || (strings.Contains(rd.ArtUri, ".relizahub.com") && !strings.Contains(rd.ArtUri, "/chartrepo/")) {
+	} else if strings.Contains(rd.ArtUri, "azurecr.io") || strings.Contains(rd.ArtUri, "ghcr.io") ||
+		strings.Contains(rd.ArtUri, ".ecr.") || strings.Contains(rd.ArtUri, ".pkg.dev") ||
+		(strings.Contains(rd.ArtUri, ".relizahub.com") && !strings.Contains(rd.ArtUri, "/chartrepo/")) {
 		helmRepoInfo.UseOci = true
 	}
 
