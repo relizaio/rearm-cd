@@ -71,7 +71,12 @@ func GetHelmRepoInfoFromDeployment(rd *RearmDeployment) HelmRepoInfo {
 	var helmRepoInfo HelmRepoInfo
 
 	helmRepoInfo.ChartName = GetChartNameFromDeployment(rd)
-	helmRepoInfo.RepoUri = strings.Replace(rd.ArtUri, "/"+helmRepoInfo.ChartName, "", -1)
+	lastSlash := strings.LastIndex(rd.ArtUri, "/")
+	if lastSlash > 0 {
+		helmRepoInfo.RepoUri = rd.ArtUri[:lastSlash]
+	} else {
+		helmRepoInfo.RepoUri = rd.ArtUri
+	}
 
 	// Determine if this is an OCI registry based on domain patterns or oci:// prefix
 	helmRepoInfo.UseOci = false
