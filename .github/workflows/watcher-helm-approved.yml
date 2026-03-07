@@ -1,0 +1,63 @@
+on:
+  repository_dispatch:
+    types: [watcher-helm-approved-event]
+
+name: Bump Watcher Helm Version in ReARM CD Helm Chart
+
+jobs:
+  bump-watcher-helm:
+    permissions:
+      contents: write
+    name: Bump Watcher Helm in ReARM CD Helm Chart
+    runs-on: ubuntu-latest
+    env:
+      APPROVED_RELEASE: ${{ github.event.client_payload.approvedRelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          token: ${{ secrets.PUSH_TOKEN }}
+      - id: setup-rearm
+        name: setup-rearm
+        uses: relizaio/rearm-actions/setup-cli@8d66e201a286c89a57b0f601f74ca0a021f56a71 # v1.1.0
+
+      - name: Get latest release and update helm chart
+        run: |
+          # sleep to allow release to propagate
+          sleep 20
+          # Fetch latest READY_TO_SHIP release from ReARM
+          RELEASE_JSON=$(rearm getlatestrelease \
+            -u https://reliza.rearmhq.com \
+            -i ${{ secrets.REARM_REARM_WATCHER_HELM_API_ID }} \
+            -k ${{ secrets.REARM_REARM_WATCHER_HELM_API_KEY }} \
+            --lifecycle READY_TO_SHIP \
+            -b main --cdx)
+
+          # Extract first helm component's version
+          COMPONENT_VERSION=$(echo "$RELEASE_JSON" | jq -r '[.components[] | select(.type == "application")][0].version')
+
+          echo "Extracted version: $COMPONENT_VERSION"
+          echo "Approved release: $APPROVED_RELEASE"
+
+          if [ -z "$COMPONENT_VERSION" ] || [ "$COMPONENT_VERSION" = "null" ]; then
+            echo "Error: could not extract component version"
+            exit 1
+          fi
+
+          if [ "$COMPONENT_VERSION" != "$APPROVED_RELEASE" ]; then
+            echo "Error: extracted version ($COMPONENT_VERSION) does not match approved release ($APPROVED_RELEASE)"
+            exit 1
+          fi
+
+          # Update watcherHelmVersion in values.yaml
+          sed -i "s/^watcherHelmVersion:.*$/watcherHelmVersion: \"${COMPONENT_VERSION}\"/" deploy/rearm-cd-helm/values.yaml
+
+          echo "COMPONENT_VERSION=$COMPONENT_VERSION" >> "$GITHUB_ENV"
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'reliza-auto'
+          git config --global user.email 'info@reliza.io'
+          git add deploy/rearm-cd-helm
+          git commit -m "chore(rearm-cd-helm): bump watcher helm version to ${COMPONENT_VERSION}"
+          git push
