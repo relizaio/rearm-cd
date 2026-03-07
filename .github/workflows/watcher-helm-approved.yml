@@ -34,7 +34,7 @@ jobs:
             -b main --cdx)
 
           # Extract first helm component's version
-          COMPONENT_VERSION=$(echo "$RELEASE_JSON" | jq -r '[.components[] | select(.type == "application")][0].version')
+          COMPONENT_VERSION=$(echo "$RELEASE_JSON" | jq -r '[.components[] | select(.type == "file")][0].version')
 
           echo "Extracted version: $COMPONENT_VERSION"
           echo "Approved release: $APPROVED_RELEASE"
