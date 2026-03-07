@@ -52,12 +52,15 @@ jobs:
           # Update watcherHelmVersion in values.yaml
           sed -i "s/^watcherHelmVersion:.*$/watcherHelmVersion: \"${COMPONENT_VERSION}\"/" deploy/rearm-cd-helm/values.yaml
 
+          # Update default watcherHelmVersion in cli.go
+          sed -i 's/^\t\twatcherHelmVersion = ".*"$/\t\twatcherHelmVersion = "'"${COMPONENT_VERSION}"'"/' rearm-cd/cli/cli.go
+
           echo "COMPONENT_VERSION=$COMPONENT_VERSION" >> "$GITHUB_ENV"
 
       - name: Commit and push changes
         run: |
           git config --global user.name 'reliza-auto'
           git config --global user.email 'info@reliza.io'
-          git add deploy/rearm-cd-helm
-          git commit -m "chore(rearm-cd-helm): bump watcher helm version to ${COMPONENT_VERSION}"
+          git add deploy/rearm-cd-helm rearm-cd/cli/cli.go
+          git commit -m "chore: bump watcher helm version to ${COMPONENT_VERSION} in rearm-cd and rearm-cd-helm"
           git push
