@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          token: ${{ secrets.PUSH_TOKEN }}
       - id: setup-rearm
         name: setup-rearm
         uses: relizaio/rearm-actions/setup-cli@8d66e201a286c89a57b0f601f74ca0a021f56a71 # v1.1.0
