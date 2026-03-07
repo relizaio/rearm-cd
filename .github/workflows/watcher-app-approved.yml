@@ -27,7 +27,7 @@ jobs:
             -i ${{ secrets.REARM_REARM_WATCHER_API_ID }} \
             -k ${{ secrets.REARM_REARM_WATCHER_API_KEY }} \
             --lifecycle READY_TO_SHIP \
-            -b main)
+            -b main --cdx)
 
           # Extract first container component's version and sha256 digest
           COMPONENT_VERSION=$(echo "$RELEASE_JSON" | jq -r '[.components[] | select(.type == "container")][0].version')
