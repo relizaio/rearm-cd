@@ -1,14 +1,14 @@
 on:
   repository_dispatch:
-    types: [watcher-app-approved-event]
+    types: [rearm-cd-approved-event]
 
-name: Bump Watcher App Version in Helm Chart
+name: Bump ReARM CD App Version in Helm Chart
 
 jobs:
-  bump-watcher-app:
+  bump-rearm-cd-app:
     permissions:
       contents: write
-    name: Bump Watcher App in Helm Chart
+    name: Bump ReARM CD App in Helm Chart
     runs-on: ubuntu-latest
     env:
       APPROVED_RELEASE: ${{ github.event.client_payload.approvedRelease }}
@@ -28,8 +28,8 @@ jobs:
           # Fetch latest READY_TO_SHIP release from ReARM
           RELEASE_JSON=$(rearm getlatestrelease \
             -u https://reliza.rearmhq.com \
-            -i ${{ secrets.REARM_REARM_WATCHER_API_ID }} \
-            -k ${{ secrets.REARM_REARM_WATCHER_API_KEY }} \
+            -i ${{ secrets.REARM_REARM_CD_API_ID }} \
+            -k ${{ secrets.REARM_REARM_CD_API_KEY }} \
             --lifecycle READY_TO_SHIP \
             -b main --cdx)
 
@@ -57,14 +57,14 @@ jobs:
           fi
 
           # Build the full image reference
-          IMAGE_REF="registry.relizahub.com/library/rearm-watcher-app:${COMPONENT_VERSION}@sha256:${COMPONENT_DIGEST}"
+          IMAGE_REF="registry.relizahub.com/library/rearm-cd-app:${COMPONENT_VERSION}@sha256:${COMPONENT_DIGEST}"
           echo "New image reference: $IMAGE_REF"
 
           # Update appVersion in Chart.yaml
-          sed -i "s/^appVersion:.*$/appVersion: ${COMPONENT_VERSION}/" deploy/rearm-watcher-helm/Chart.yaml
+          sed -i "s/^appVersion:.*$/appVersion: ${COMPONENT_VERSION}/" deploy/rearm-cd-helm/Chart.yaml
 
-          # Update image.repository in values.yaml
-          sed -i "s|^\(  repository:\).*$|\1 ${IMAGE_REF}|" deploy/rearm-watcher-helm/values.yaml
+          # Update images.rearmcdImage in values.yaml
+          sed -i "s|^\(  rearmcdImage:\).*$|\1 ${IMAGE_REF}|" deploy/rearm-cd-helm/values.yaml
 
           echo "COMPONENT_VERSION=$COMPONENT_VERSION" >> "$GITHUB_ENV"
 
@@ -72,6 +72,6 @@ jobs:
         run: |
           git config --global user.name 'reliza-auto'
           git config --global user.email 'info@reliza.io'
-          git add deploy/rearm-watcher-helm
-          git commit -m "chore(rearm-watcher-helm): bump watcher app version to ${COMPONENT_VERSION}"
+          git add deploy/rearm-cd-helm
+          git commit -m "chore(rearm-cd-helm): bump rearm-cd app version to ${COMPONENT_VERSION}"
           git push
