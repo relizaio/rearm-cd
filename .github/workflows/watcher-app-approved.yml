@@ -1,0 +1,73 @@
+on:
+  repository_dispatch:
+    types: [watcher-app-approved-event]
+
+name: Bump Watcher App Version in Helm Chart
+
+jobs:
+  bump-watcher-app:
+    permissions:
+      contents: write
+    name: Bump Watcher App in Helm Chart
+    runs-on: ubuntu-latest
+    env:
+      APPROVED_RELEASE: ${{ github.event.client_payload.approvedRelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - id: setup-rearm
+        name: setup-rearm
+        uses: relizaio/rearm-actions/setup-cli@c5822762f4993a75c31e6c7f66863b34d56165cf # v1.1.0
+
+      - name: Get latest release and update helm chart
+        run: |
+          # Fetch latest READY_TO_SHIP release from ReARM
+          RELEASE_JSON=$(rearm getlatestrelease \
+            -u https://reliza.rearmhq.com \
+            -i ${{ secrets.REARM_REARM_WATCHER_API_ID }} \
+            -k ${{ secrets.REARM_REARM_WATCHER_API_KEY }} \
+            --lifecycle READY_TO_SHIP \
+            -b main)
+
+          # Extract first container component's version and sha256 digest
+          COMPONENT_VERSION=$(echo "$RELEASE_JSON" | jq -r '[.components[] | select(.type == "container")][0].version')
+          COMPONENT_DIGEST=$(echo "$RELEASE_JSON" | jq -r '[.components[] | select(.type == "container")][0].hashes[] | select(.alg == "SHA-256") | .content')
+
+          echo "Extracted version: $COMPONENT_VERSION"
+          echo "Extracted digest: $COMPONENT_DIGEST"
+          echo "Approved release: $APPROVED_RELEASE"
+
+          if [ -z "$COMPONENT_VERSION" ] || [ "$COMPONENT_VERSION" = "null" ]; then
+            echo "Error: could not extract component version"
+            exit 1
+          fi
+
+          if [ -z "$COMPONENT_DIGEST" ] || [ "$COMPONENT_DIGEST" = "null" ]; then
+            echo "Error: could not extract component digest"
+            exit 1
+          fi
+
+          if [ "$COMPONENT_VERSION" != "$APPROVED_RELEASE" ]; then
+            echo "Error: extracted version ($COMPONENT_VERSION) does not match approved release ($APPROVED_RELEASE)"
+            exit 1
+          fi
+
+          # Build the full image reference
+          IMAGE_REF="registry.relizahub.com/library/rearm-watcher-app:${COMPONENT_VERSION}@sha256:${COMPONENT_DIGEST}"
+          echo "New image reference: $IMAGE_REF"
+
+          # Update appVersion in Chart.yaml
+          sed -i "s/^appVersion:.*$/appVersion: ${COMPONENT_VERSION}/" deploy/rearm-watcher-helm/Chart.yaml
+
+          # Update image.repository in values.yaml
+          sed -i "s|^\(  repository:\).*$|\1 ${IMAGE_REF}|" deploy/rearm-watcher-helm/values.yaml
+
+          echo "COMPONENT_VERSION=$COMPONENT_VERSION" >> "$GITHUB_ENV"
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'reliza-auto'
+          git config --global user.email 'info@reliza.io'
+          git add deploy/rearm-watcher-helm
+          git commit -m "chore(rearm-watcher-helm): bump watcher app version to ${COMPONENT_VERSION}"
+          git push
