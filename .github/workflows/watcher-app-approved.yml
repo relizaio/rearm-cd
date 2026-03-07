@@ -21,6 +21,8 @@ jobs:
 
       - name: Get latest release and update helm chart
         run: |
+          # sleep to allow release to propagate
+          sleep 20
           # Fetch latest READY_TO_SHIP release from ReARM
           RELEASE_JSON=$(rearm getlatestrelease \
             -u https://reliza.rearmhq.com \
