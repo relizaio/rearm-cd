@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - id: setup-rearm
         name: setup-rearm
-        uses: relizaio/rearm-actions/setup-cli@c5822762f4993a75c31e6c7f66863b34d56165cf # v1.1.0
+        uses: relizaio/rearm-actions/setup-cli@8d66e201a286c89a57b0f601f74ca0a021f56a71 # v1.1.0
 
       - name: Get latest release and update helm chart
         run: |
