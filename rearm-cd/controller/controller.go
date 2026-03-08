@@ -91,7 +91,6 @@ func singleLoopRun() {
 				didDeploy = true
 			}
 			namespacesForWatcher[rd.Namespace] = true
-			cli.CreateNamespaceIfMissing(rd.Namespace)
 		}
 
 		cli.InstallWatcher(&namespacesForWatcher)
@@ -292,7 +291,6 @@ func processSingleDeployment(rd *cli.RearmDeployment) (bool, error) {
 	}
 
 	if !isError && doInstall {
-		// cli.CreateNamespaceIfMissing(rd.Namespace)
 		err := cli.InstallApplication(groupPath, rd)
 		isError = (err != nil)
 	}

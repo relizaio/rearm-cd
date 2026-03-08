@@ -177,13 +177,14 @@ func installArgoApplication(groupPath string, rd *RearmDeployment, argoNameSpace
 
 func installArgoCD() {
 	sugar.Info("Installing argocd")
+	CreateNamespaceIfMissing("argocd")
 	dryRunShellout(HelmApp + " repo add argo https://argoproj.github.io/argo-helm")
 	dryRunShellout(HelmApp + " repo update")
 	retryLeft := 3
 	argocdInstalled := false
 	argoVersion := os.Getenv("ARGO_HELM_VERSION")
 	for !argocdInstalled && retryLeft > 0 {
-		_, _, err := dryRunShellout(HelmApp + " upgrade --install --create-namespace --set dex.enabled=false --set notifications.enabled=false --set applicationSet.enabled=false --set configs.params.server.insecure=true -n argocd argocd argo/argo-cd --version " + argoVersion)
+		_, _, err := dryRunShellout(HelmApp + " upgrade --install --set dex.enabled=false --set notifications.enabled=false --set applicationSet.enabled=false --set configs.params.server.insecure=true -n argocd argocd argo/argo-cd --version " + argoVersion)
 		if err == nil {
 			argocdInstalled = true
 		} else {

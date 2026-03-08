@@ -311,7 +311,8 @@ func SetHelmChartAppVersion(groupPath string, rd *RearmDeployment) error {
 func InstallHelmChart(groupPath string, rd *RearmDeployment) error {
 	helmChartName := GetChartNameFromDeployment(rd)
 	sugar.Info("Installing chart ", helmChartName, " for namespace ", rd.Namespace)
-	helmCmd := HelmApp + " upgrade --install " + helmChartName + " --create-namespace -n " + rd.Namespace + " -f " + groupPath + InstallValues + " " + groupPath + helmChartName
+	CreateNamespaceIfMissing(rd.Namespace)
+	helmCmd := HelmApp + " upgrade --install " + helmChartName + " -n " + rd.Namespace + " -f " + groupPath + InstallValues + " " + groupPath + helmChartName
 	sugar.Info("Helm install command: ", helmCmd)
 	sugar.Info("Using values file: ", groupPath+InstallValues)
 	stdout, stderr, err := dryRunShellout(helmCmd)
