@@ -4,6 +4,17 @@ ReARM CD is a tool that acts as an agent on the Kubernetes side to connect the i
 
 The recommended way to install is to use included Helm Chart (Will be available soon).
 
+## Prerequisites
+
+ReARM CD requires [Bitnami Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) to be installed in your cluster before installation.
+
+Install Sealed Secrets using Helm:
+```bash
+helm install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller oci://registry.relizahub.com/library/sealed-secrets
+```
+
+For more information, see the [Sealed Secrets Helm Chart documentation](https://github.com/bitnami-labs/sealed-secrets#helm-chart).
+
 ## Installation via Helm Chart
 1. Create namespace
 ```

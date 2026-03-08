@@ -38,9 +38,11 @@ const (
 )
 
 func InstallSealedCertificates() {
-	sugar.Info("Installing Bitnami Sealed Certificate")
-	// https://github.com/bitnami-labs/sealed-secrets#helm-chart
-	shellout(HelmApp + " install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller oci://registry.relizahub.com/library/sealed-secrets")
+	sugar.Error("Sealed Secrets controller is not installed in the cluster.")
+	sugar.Error("Please install it manually using Helm:")
+	sugar.Error("  helm install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller oci://registry.relizahub.com/library/sealed-secrets")
+	sugar.Error("For more information, see: https://github.com/bitnami-labs/sealed-secrets#helm-chart")
+	panic("Sealed Secrets controller not found - installation required")
 }
 
 func ResolveHelmAuthSecret(secretName string) ComponentAuth {
