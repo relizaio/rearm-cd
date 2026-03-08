@@ -22,9 +22,12 @@ rbac:
   # To restrict ReARM CD to specific namespaces instead of cluster-wide access,
   # list them here. When set, namespace-scoped Roles and RoleBindings are created
   # instead of ClusterRole/ClusterRoleBinding.
+  # IMPORTANT: When using namespace-scoped RBAC, you MUST include the namespace where
+  # ReARM CD itself runs (the release namespace) in this list for normal operations.
   # namespaces: []
   # Example:
   # namespaces:
+  #   - rearm-cd      # Required: ReARM CD's own namespace
   #   - default
   #   - staging
   #   - production

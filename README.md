@@ -29,7 +29,66 @@ kubectl create secret generic rearm-cd --from-literal=REARM_APIKEYID=your-rearm-
 helm install -n rearm-cd rearm-cd oci://registry.relizahub.com/library/rearm-cd
 ```
 
+## RBAC Configuration
 
+By default, ReARM CD is installed with cluster-wide permissions (ClusterRole and ClusterRoleBinding). You can customize the RBAC configuration via Helm values:
+
+### Disable RBAC Resource Creation
+
+If you want to manage RBAC resources separately:
+
+```yaml
+rbac:
+  createServiceAccount: false
+  createClusterRole: false
+  createClusterRoleBinding: false
+  serviceAccountName: "my-existing-service-account"
+```
+
+### Namespace-Scoped Permissions
+
+To restrict ReARM CD to specific namespaces instead of cluster-wide access, set `rbac.namespaces`:
+
+```yaml
+rbac:
+  namespaces:
+    - rearm-cd      # Required: ReARM CD's own namespace
+    - default
+    - staging
+    - production
+```
+
+When `rbac.namespaces` is set:
+- Namespace-scoped **Roles** and **RoleBindings** are created in each listed namespace
+- **ClusterRole** and **ClusterRoleBinding** are not created
+- ReARM CD cannot access resources outside the listed namespaces
+- **Important:** You must include the namespace where ReARM CD itself runs (the release namespace) for normal operations
+
+### Security Considerations
+
+- Namespace-scoped RBAC prevents privilege escalation — ReARM CD cannot create ClusterRoles or grant itself access to other namespaces
+- Kubernetes RBAC is deny-by-default and additive only
+- ReARM CD requires full permissions (`*` verbs on `*` resources) within its allowed namespaces to manage Helm charts, secrets, and deployments
+
+### Sample Full RBAC controlled Installation for ReARM deployment
+Create rearm-cd-values.yaml with the following content:
+
+```yaml
+rbac:
+  createClusterRole: false
+  createClusterRoleBinding: false
+  namespaces:
+    - rearm-cd
+    - rearm
+    - dtrack
+```
+
+```bash
+kubectl create ns rearm-cd rearm dtrack
+helm install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller oci://registry.relizahub.com/library/sealed-secrets
+kubectl create secret generic rearm-cd --from-literal=REARM_APIKEYID=your-rearm-api-id --from-literal=REARM_APIKEY=your-rearm-api-key --from-literal=REARM_URI=your-rearm-uri -n rearm-cd
+helm install -n rearm-cd -f rearm-cd-values.yaml rearm-cd oci://registry.relizahub.com/library/rearm-cd
+```
 
 ## Dry Run Mode
 
