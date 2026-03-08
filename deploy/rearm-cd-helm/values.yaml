@@ -12,6 +12,23 @@ backup:
   awsRegion: "ca-central-1"
   prefix: "rearm-cd-backup"
 
+rbac:
+  createServiceAccount: true
+  createClusterRole: true
+  createClusterRoleBinding: true
+  # Override the service account name. When empty, defaults to <namespace>-<release>-rearm-cd.
+  # Set this to a pre-existing service account name when createServiceAccount is false.
+  serviceAccountName: ""
+  # To restrict ReARM CD to specific namespaces instead of cluster-wide access,
+  # list them here. When set, namespace-scoped Roles and RoleBindings are created
+  # instead of ClusterRole/ClusterRoleBinding.
+  # namespaces: []
+  # Example:
+  # namespaces:
+  #   - default
+  #   - staging
+  #   - production
+
 storageSize: 1G
 
 create_secret_in_chart: none # regular, none

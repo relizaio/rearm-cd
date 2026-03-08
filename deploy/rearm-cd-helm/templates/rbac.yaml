@@ -1,37 +1,75 @@
+{{- $saName := include "rearm-cd.serviceAccountName" . -}}
+{{- if .Values.rbac.createServiceAccount }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    app.kubernetes.io/name: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
-    app.kubernetes.io/part-of: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
-  name: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
+    app.kubernetes.io/name: {{ $saName }}
+    app.kubernetes.io/part-of: {{ $saName }}
+  name: {{ $saName }}
   namespace: {{ .Release.Namespace }}
+{{- end }}
 
+{{- if and .Values.rbac.createClusterRole (not .Values.rbac.namespaces) }}
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app.kubernetes.io/name: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
-  name: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
+    app.kubernetes.io/name: {{ $saName }}
+  name: {{ $saName }}
 rules:
 - apiGroups: ["*"]
   resources: ["*"]
   verbs: ["*"]
+{{- end }}
 
+{{- if and .Values.rbac.createClusterRoleBinding (not .Values.rbac.namespaces) }}
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
+  name: {{ $saName }}
 subjects:
 - kind: ServiceAccount
-  name: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
+  name: {{ $saName }}
   namespace: {{ .Release.Namespace }}
   apiGroup: ""
 roleRef:
   kind: ClusterRole
-  name: {{ .Release.Namespace }}-{{ .Release.Name }}-rearm-cd
+  name: {{ $saName }}
   apiGroup: ""
+{{- end }}
+
+{{- if .Values.rbac.namespaces }}
+{{- $relNamespace := .Release.Namespace }}
+{{- range .Values.rbac.namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ $saName }}
+  name: {{ $saName }}
+  namespace: {{ . }}
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $saName }}
+  namespace: {{ . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ $saName }}
+  namespace: {{ $relNamespace }}
+  apiGroup: ""
+roleRef:
+  kind: Role
+  name: {{ $saName }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}
