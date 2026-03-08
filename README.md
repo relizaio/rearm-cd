@@ -64,6 +64,17 @@ When `rbac.namespaces` is set:
 - ReARM CD cannot access resources outside the listed namespaces
 - **Important:** You must include the namespace where ReARM CD itself runs (the release namespace) for normal operations
 
+### Sealed Secrets RBAC for Namespace-Scoped Mode
+
+When using namespace-scoped RBAC, ReARM CD needs read-only access to the `sealed-secrets-controller` service in `kube-system` for certificate retrieval. This is provided as a standalone YAML file (`deploy/sealed-secrets-rbac.yaml`) that must be applied separately — it is not part of the Helm chart to avoid permission issues during self-upgrades.
+
+Before applying, edit `deploy/sealed-secrets-rbac.yaml` to match your service account name and namespace, then apply:
+```bash
+kubectl apply -f deploy/sealed-secrets-rbac.yaml
+```
+
+The default service account name follows the pattern `<namespace>-<release>-rearm-cd` (e.g., `rearm-cd-rearm-cd-rearm-cd` for namespace=rearm-cd, release=rearm-cd). If you set a custom `rbac.serviceAccountName`, use that value instead.
+
 ### Security Considerations
 
 - Namespace-scoped RBAC prevents privilege escalation — ReARM CD cannot create ClusterRoles or grant itself access to other namespaces
@@ -88,6 +99,7 @@ kubectl create ns rearm-cd rearm dtrack
 helm install sealed-secrets -n kube-system --set-string fullnameOverride=sealed-secrets-controller oci://registry.relizahub.com/library/sealed-secrets
 kubectl create secret generic rearm-cd --from-literal=REARM_APIKEYID=your-rearm-api-id --from-literal=REARM_APIKEY=your-rearm-api-key --from-literal=REARM_URI=your-rearm-uri -n rearm-cd
 helm install -n rearm-cd -f rearm-cd-values.yaml rearm-cd oci://registry.relizahub.com/library/rearm-cd
+kubectl apply -f https://raw.githubusercontent.com/relizaio/rearm-cd/refs/heads/main/deploy/sealed-secrets-rbac.yaml
 ```
 
 ## Dry Run Mode
