@@ -107,20 +107,27 @@ func GetHelmRepoInfoFromDeployment(rd *RearmDeployment) HelmRepoInfo {
 	helmRepoInfo.RepoHost = strings.Replace(helmRepoInfo.RepoHost, "http://", "", -1)
 	helmRepoInfo.RepoHost = strings.Replace(helmRepoInfo.RepoHost, "oci://", "", -1)
 
-	// Construct OciUri if needed and not already set
+	// Construct OciUri if needed and not already set (uses full path)
 	if helmRepoInfo.UseOci && helmRepoInfo.OciUri == "" {
 		helmRepoInfo.OciUri = "oci://" + helmRepoInfo.RepoHost + "/" + helmRepoInfo.ChartName
+	}
+
+	// Extract only the registry hostname for helm registry login (e.g., ghcr.io from ghcr.io/traefik/helm)
+	helmRepoInfo.RegistryHost = helmRepoInfo.RepoHost
+	if slashIdx := strings.Index(helmRepoInfo.RegistryHost, "/"); slashIdx > 0 {
+		helmRepoInfo.RegistryHost = helmRepoInfo.RegistryHost[:slashIdx]
 	}
 
 	return helmRepoInfo
 }
 
 type HelmRepoInfo struct {
-	ChartName string
-	RepoUri   string
-	RepoHost  string
-	UseOci    bool
-	OciUri    string
+	ChartName    string
+	RepoUri      string
+	RepoHost     string
+	RegistryHost string
+	UseOci       bool
+	OciUri       string
 }
 
 func DownloadHelmChart(path string, rd *RearmDeployment, pa *ComponentAuth, helmRepoInfo HelmRepoInfo) error {
@@ -130,7 +137,7 @@ func DownloadHelmChart(path string, rd *RearmDeployment, pa *ComponentAuth, helm
 	if helmRepoInfo.UseOci {
 
 		if pa.Type != "NOCREDS" {
-			_, _, err = shellout(HelmApp + " registry login " + helmRepoInfo.RepoHost + " --username " + pa.Login + " --password " + pa.Password)
+			_, _, err = shellout(HelmApp + " registry login " + helmRepoInfo.RegistryHost + " --username " + pa.Login + " --password " + pa.Password)
 		}
 		if err == nil {
 			_, _, err = shellout(HelmApp + " pull " + helmRepoInfo.OciUri + " --version " + rd.ArtVersion + " -d " + path)
