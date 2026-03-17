@@ -11,12 +11,12 @@ ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kub
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/cosign.pub ./cosign.pub
 ADD https://get.helm.sh/helm-v4.1.3-linux-${TARGETARCH}.tar.gz ./helm-v4.1.3-linux-${TARGETARCH}.tar.gz
 ADD https://dl.k8s.io/v1.33.8/bin/linux/${TARGETARCH}/kubectl ./kubectl
-ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.03.11/rearm-26.03.11-linux-${TARGETARCH}.zip ./rearm-26.03.11-linux-${TARGETARCH}.zip
+ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.03.12/rearm-26.03.12-linux-${TARGETARCH}.zip ./rearm-26.03.12-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
 RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
 RUN tar -xzvf kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
 RUN tar -xzvf helm-v4.1.3-linux-${TARGETARCH}.tar.gz
-RUN unzip rearm-26.03.11-linux-${TARGETARCH}.zip
+RUN unzip rearm-26.03.12-linux-${TARGETARCH}.zip
 
 FROM alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659 AS release-stage
 ARG TARGETARCH
