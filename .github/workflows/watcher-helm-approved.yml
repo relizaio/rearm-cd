@@ -19,7 +19,7 @@ jobs:
           token: ${{ secrets.PUSH_TOKEN }}
       - id: setup-rearm
         name: setup-rearm
-        uses: relizaio/rearm-actions/setup-cli@8d66e201a286c89a57b0f601f74ca0a021f56a71 # v1.1.0
+        uses: relizaio/rearm-actions/setup-cli@50ecfe47014d1025047ecdcfe9b6a2472c1a2f25 # v1.3.0
 
       - name: Get latest release and update helm chart
         run: |
