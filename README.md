@@ -68,7 +68,13 @@ When `rbac.namespaces` is set:
 
 When using namespace-scoped RBAC, ReARM CD needs read-only access to the `sealed-secrets-controller` service in `kube-system` for certificate retrieval. This is provided as a standalone YAML file (`deploy/sealed-secrets-rbac.yaml`) that must be applied separately — it is not part of the Helm chart to avoid permission issues during self-upgrades.
 
-Before applying, edit `deploy/sealed-secrets-rbac.yaml` to match your service account name and namespace, then apply:
+Before applying, if using all-default values run
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/relizaio/rearm-cd/refs/heads/main/deploy/sealed-secrets-rbac.yaml
+```
+
+Otherwise, edit `deploy/sealed-secrets-rbac.yaml` to match your service account name and namespace, then apply:
 ```bash
 kubectl apply -f deploy/sealed-secrets-rbac.yaml
 ```
