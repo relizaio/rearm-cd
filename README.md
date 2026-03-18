@@ -39,7 +39,7 @@ If you want to manage RBAC resources separately:
 
 ```yaml
 rbac:
-  createServiceAccount: false
+  createServiceAccount: true # set this to false if you want to "bring your own" service account
   createClusterRole: false
   createClusterRoleBinding: false
   serviceAccountName: "my-existing-service-account"
