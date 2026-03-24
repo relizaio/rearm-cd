@@ -76,6 +76,22 @@ func singleLoopRun() {
 		didDeploy := false
 
 		for _, rd := range rlzDeployments {
+			if rd.IntegrationType == "NONE" {
+				// Mark as seen to prevent uninstall, but skip install/upgrade
+				existingDeployments[rd.Name] = true
+				sugar.Infow("Skipping deployment due to integrationType=NONE",
+					"product", rd.Product,
+					"deploymentName", rd.Name)
+				continue
+			}
+			if rd.IntegrationType == "UNINSTALL" {
+				// Do NOT mark as seen - leave existingDeployments[rd.Name] = false
+				// so deleteObsoleteDeployments will uninstall it if present
+				sugar.Infow("Marking deployment for uninstall due to integrationType=UNINSTALL",
+					"product", rd.Product,
+					"deploymentName", rd.Name)
+				continue
+			}
 			existingDeployments[rd.Name] = true
 			deployed, err := processSingleDeployment(&rd)
 			if err != nil {

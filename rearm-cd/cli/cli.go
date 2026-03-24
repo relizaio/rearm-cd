@@ -238,6 +238,8 @@ func produceAppConfigMapFromCdxComponents(cdxComponents *[]cdx.Component) map[st
 					for _, prop := range *comp.Properties {
 						if prop.Name == "CONFIGURATION" && prop.Value != "default" {
 							appConfig.ValuesFile = prop.Value
+						} else if prop.Name == "reliza:devops:integrationType" {
+							appConfig.IntegrationType = prop.Value
 						} else if prop.Name == "HELM_APP_VERSION" {
 							// HELM_APP_VERSION: For external Helm charts (e.g., Jenkins 2.375.2)
 							// This is the actual application version inside the Helm chart
@@ -309,6 +311,7 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RearmDepl
 					sugar.Debug("No hash found for Helm deliverable = " + rd.ArtUri + ", assuming public repository")
 					rd.ArtHash = cdx.Hash{Algorithm: cdx.HashAlgoSHA256, Value: ""}
 				}
+				rd.IntegrationType = appConfig.IntegrationType
 				rlzDeployments = append(rlzDeployments, rd)
 			}
 		}
@@ -547,14 +550,15 @@ type SecretTemplateResolver struct {
 }
 
 type RearmDeployment struct {
-	Name       string
-	Namespace  string
-	Product    string
-	ArtUri     string
-	ArtVersion string
-	ArtHash    cdx.Hash
-	ConfigFile string
-	AppVersion string
+	Name            string
+	Namespace       string
+	Product         string
+	ArtUri          string
+	ArtVersion      string
+	ArtHash         cdx.Hash
+	ConfigFile      string
+	AppVersion      string
+	IntegrationType string
 }
 
 type ComponentAuth struct {
@@ -565,6 +569,7 @@ type ComponentAuth struct {
 }
 
 type appConfig struct {
-	ValuesFile string
-	AppVersion string
+	IntegrationType string
+	ValuesFile      string
+	AppVersion      string
 }
