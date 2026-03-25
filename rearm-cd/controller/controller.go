@@ -79,7 +79,7 @@ func singleLoopRun() {
 			if rd.IntegrationType == "NONE" {
 				// Mark as seen to prevent uninstall, but skip install/upgrade
 				existingDeployments[rd.Name] = true
-				sugar.Infow("Skipping deployment due to integrationType=NONE",
+				sugar.Debugw("Skipping deployment due to integrationType=NONE",
 					"product", rd.Product,
 					"deploymentName", rd.Name)
 				continue
