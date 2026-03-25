@@ -79,6 +79,7 @@ func singleLoopRun() {
 			if rd.IntegrationType == "NONE" {
 				// Mark as seen to prevent uninstall, but skip install/upgrade
 				existingDeployments[rd.Name] = true
+				namespacesForWatcher[rd.Namespace] = true
 				sugar.Debugw("Skipping deployment due to integrationType=NONE",
 					"product", rd.Product,
 					"deploymentName", rd.Name)
@@ -87,7 +88,8 @@ func singleLoopRun() {
 			if rd.IntegrationType == "UNINSTALL" {
 				// Do NOT mark as seen - leave existingDeployments[rd.Name] = false
 				// so deleteObsoleteDeployments will uninstall it if present
-				sugar.Infow("Marking deployment for uninstall due to integrationType=UNINSTALL",
+				namespacesForWatcher[rd.Namespace] = true
+				sugar.Debugw("Marking deployment for uninstall due to integrationType=UNINSTALL",
 					"product", rd.Product,
 					"deploymentName", rd.Name)
 				continue
