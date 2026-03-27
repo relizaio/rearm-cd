@@ -19,6 +19,98 @@ import (
 	"testing"
 )
 
+func TestParseWatcherNamespacesFromJson(t *testing.T) {
+	testJson := `{
+		"apiVersion": "apps/v1",
+		"kind": "Deployment",
+		"metadata": {
+			"name": "test-watcher-deployment",
+			"namespace": "test-ns"
+		},
+		"spec": {
+			"template": {
+				"spec": {
+					"containers": [
+						{
+							"name": "test-watcher",
+							"image": "registry.example.com/test/watcher-app:1.2.3@sha256:aabbccdd",
+							"env": [
+								{
+									"name": "REARM_URI",
+									"value": "https://test.rearmhq.example.com"
+								},
+								{
+									"name": "NAMESPACE",
+									"value": "alpha-ns,beta-ns,gamma-ns"
+								},
+								{
+									"name": "SENDER_ID",
+									"value": "default"
+								},
+								{
+									"name": "REARM_API_ID",
+									"valueFrom": {
+										"secretKeyRef": {
+											"key": "rearm-api-id",
+											"name": "rearm-watcher"
+										}
+									}
+								},
+								{
+									"name": "REARM_API_KEY",
+									"valueFrom": {
+										"secretKeyRef": {
+											"key": "rearm-api-key",
+											"name": "rearm-watcher"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		}
+	}`
+	expected := "alpha-ns,beta-ns,gamma-ns"
+	actual := parseWatcherNamespacesFromJson(testJson)
+	if expected != actual {
+		t.Fatalf("actual namespaces = %q, expected = %q", actual, expected)
+	}
+}
+
+func TestParseWatcherNamespacesFromJson_NoNamespaceEnv(t *testing.T) {
+	testJson := `{
+		"apiVersion": "apps/v1",
+		"kind": "Deployment",
+		"metadata": {
+			"name": "test-watcher-deployment",
+			"namespace": "test-ns"
+		},
+		"spec": {
+			"template": {
+				"spec": {
+					"containers": [
+						{
+							"name": "test-watcher",
+							"env": [
+								{
+									"name": "REARM_URI",
+									"value": "https://test.rearmhq.example.com"
+								}
+							]
+						}
+					]
+				}
+			}
+		}
+	}`
+	actual := parseWatcherNamespacesFromJson(testJson)
+	if actual != "" {
+		t.Fatalf("expected empty string when NAMESPACE env not present, got %q", actual)
+	}
+}
+
 func TestWatcherNamespaceAggregation(t *testing.T) {
 	namespacesForWathcer := make(map[string]bool)
 	namespacesForWathcer["default"] = true

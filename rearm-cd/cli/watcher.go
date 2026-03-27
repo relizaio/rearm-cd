@@ -77,14 +77,9 @@ type watcherDeploymentJson struct {
 	Spec watcherDeploymentSpec `json:"spec"`
 }
 
-func GetWatcherCurrentNamespaces() string {
-	out, _, err := shellout(KubectlApp + " get deployment " + watcherDeploymentName + " -n " + RearmCdNamespace + " -o json")
-	if err != nil {
-		sugar.Debug("Watcher deployment not found or not readable, treating as not installed")
-		return ""
-	}
+func parseWatcherNamespacesFromJson(jsonStr string) string {
 	var dep watcherDeploymentJson
-	if err := json.Unmarshal([]byte(out), &dep); err != nil {
+	if err := json.Unmarshal([]byte(jsonStr), &dep); err != nil {
 		sugar.Error("Failed to parse watcher deployment JSON: ", err)
 		return ""
 	}
@@ -96,6 +91,15 @@ func GetWatcherCurrentNamespaces() string {
 		}
 	}
 	return ""
+}
+
+func GetWatcherCurrentNamespaces() string {
+	out, _, err := shellout(KubectlApp + " get deployment " + watcherDeploymentName + " -n " + RearmCdNamespace + " -o json")
+	if err != nil {
+		sugar.Debug("Watcher deployment not found or not readable, treating as not installed")
+		return ""
+	}
+	return parseWatcherNamespacesFromJson(out)
 }
 
 func isWatcherConfigUpdated(namespacesForWatcherStr string) bool {
