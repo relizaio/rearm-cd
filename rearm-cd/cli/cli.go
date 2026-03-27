@@ -257,9 +257,9 @@ func produceAppConfigMapFromCdxComponents(cdxComponents *[]cdx.Component) map[st
 					// No formatting needed - this is just metadata in Chart.yaml
 					appConfig.AppVersion = comp.Version
 				} else if appConfig.IntegrationType != "NONE" && appConfig.IntegrationType != "UNINSTALL" {
-					// No version found - this is an error condition for active deployments
-					sugar.Error(fmt.Sprintf("No version found for application component %s (group: %s). Cannot proceed without a valid version.", comp.Name, comp.Group))
-					os.Exit(1)
+					// No version found - log error and skip this component for this loop run
+					sugar.Error(fmt.Sprintf("No version found for application component %s (group: %s). Skipping this loop run.", comp.Name, comp.Group))
+					continue
 				}
 
 				deplName := resolveDeploymentNameFromString(comp.Group)

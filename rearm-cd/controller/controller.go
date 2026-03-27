@@ -76,11 +76,11 @@ func singleLoopRun() {
 		didDeploy := false
 
 		for _, rd := range rlzDeployments {
-			if rd.IntegrationType == "NONE" {
+			if rd.IntegrationType == "NONE" || (rd.IntegrationType == "TARGET" && rd.ArtVersion == "") {
 				// Mark as seen to prevent uninstall, but skip install/upgrade
 				existingDeployments[rd.Name] = true
 				namespacesForWatcher[rd.Namespace] = true
-				sugar.Debugw("Skipping deployment due to integrationType=NONE",
+				sugar.Debugw("Skipping deployment due to integrationType=NONE or TARGET without version",
 					"product", rd.Product,
 					"deploymentName", rd.Name)
 				continue
