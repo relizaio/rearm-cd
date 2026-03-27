@@ -5,6 +5,7 @@ ENV CGO_ENABLED=0
 COPY . .
 ARG TARGETOS
 ARG TARGETARCH
+RUN go test ./...
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz ./kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig
