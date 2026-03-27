@@ -16,6 +16,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 package cli
 
 import (
+	"encoding/json"
 	"os"
 	"regexp"
 	"sort"
@@ -25,8 +26,8 @@ import (
 
 const (
 	watcherPath                 = "workspace/watcher/"
-	watcherLastKnownNamespaces  = watcherPath + "lastKnownNamespaces"
 	watcherHelmLastKnownVersion = watcherPath + "lastKnownWatcherHelmVersion"
+	watcherDeploymentName       = "rearm-watcher-deployment"
 )
 
 func InstallWatcher(namespacesForWatcher *map[string]bool) {
@@ -40,20 +41,13 @@ func InstallWatcher(namespacesForWatcher *map[string]bool) {
 	if isWatcherConfigUpdated {
 		sugar.Info("Watcher config was updated, proceeding with install")
 		installWatcherRoutine(namespacesForWatcherStr)
-		recordWatcherConfig(namespacesForWatcherStr)
+		recordWatcherConfig()
 	}
 
 }
 
-func recordWatcherConfig(namespacesForWatcherStr string) {
+func recordWatcherConfig() {
 	os.MkdirAll(watcherPath, 0700)
-	recFile, err := os.Create(watcherLastKnownNamespaces)
-	if err != nil {
-		sugar.Error(err)
-	}
-	recFile.Write([]byte(namespacesForWatcherStr))
-	recFile.Close()
-
 	recVersionFile, err := os.Create(watcherHelmLastKnownVersion)
 	if err != nil {
 		sugar.Error(err)
@@ -62,34 +56,69 @@ func recordWatcherConfig(namespacesForWatcherStr string) {
 	recVersionFile.Close()
 }
 
+type watcherDeploymentEnvSpec struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type watcherDeploymentContainerSpec struct {
+	Env []watcherDeploymentEnvSpec `json:"env"`
+}
+
+type watcherDeploymentSpec struct {
+	Template struct {
+		Spec struct {
+			Containers []watcherDeploymentContainerSpec `json:"containers"`
+		} `json:"spec"`
+	} `json:"template"`
+}
+
+type watcherDeploymentJson struct {
+	Spec watcherDeploymentSpec `json:"spec"`
+}
+
+func GetWatcherCurrentNamespaces() string {
+	out, _, err := shellout(KubectlApp + " get deployment " + watcherDeploymentName + " -n " + RearmCdNamespace + " -o json")
+	if err != nil {
+		sugar.Debug("Watcher deployment not found or not readable, treating as not installed")
+		return ""
+	}
+	var dep watcherDeploymentJson
+	if err := json.Unmarshal([]byte(out), &dep); err != nil {
+		sugar.Error("Failed to parse watcher deployment JSON: ", err)
+		return ""
+	}
+	for _, container := range dep.Spec.Template.Spec.Containers {
+		for _, env := range container.Env {
+			if env.Name == "NAMESPACE" {
+				return env.Value
+			}
+		}
+	}
+	return ""
+}
+
 func isWatcherConfigUpdated(namespacesForWatcherStr string) bool {
-	isDiff := false
-	prevVal, err := os.ReadFile(watcherLastKnownNamespaces)
+	// Check live namespace config from the running watcher deployment
+	currentNamespaces := GetWatcherCurrentNamespaces()
+	if strings.Compare(namespacesForWatcherStr, currentNamespaces) != 0 {
+		sugar.Infow("Watcher namespace config changed",
+			"current", currentNamespaces,
+			"desired", namespacesForWatcherStr)
+		return true
+	}
+
+	// Check if helm chart version changed (tracked in file)
+	prevVersion, err := os.ReadFile(watcherHelmLastKnownVersion)
 	if err != nil && os.IsNotExist(err) {
-		isDiff = true
+		return true
 	} else if err != nil {
 		sugar.Error(err)
 		return false
+	} else if strings.Compare(watcherHelmVersion, string(prevVersion)) != 0 {
+		return true
 	}
-
-	if !isDiff {
-		if 0 != strings.Compare(namespacesForWatcherStr, string(prevVal)) {
-			isDiff = true
-		}
-	}
-
-	if !isDiff {
-		prevVersion, err := os.ReadFile(watcherHelmLastKnownVersion)
-		if err != nil && os.IsNotExist(err) {
-			isDiff = true
-		} else if err != nil {
-			sugar.Error(err)
-			return false
-		} else if 0 != strings.Compare(watcherHelmVersion, string(prevVersion)) {
-			isDiff = true
-		}
-	}
-	return isDiff
+	return false
 }
 
 func installWatcherRoutine(namespacesForWatcherStr string) {
