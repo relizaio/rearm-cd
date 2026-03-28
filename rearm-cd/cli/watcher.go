@@ -104,8 +104,11 @@ func GetWatcherCurrentNamespaces() string {
 
 func isWatcherConfigUpdated(namespacesForWatcherStr string) bool {
 	// Check live namespace config from the running watcher deployment
+	// namespacesForWatcherStr uses \, as helm --set separator; live deployment stores plain ,
+	// Sort both sides before comparing to avoid false positives from ordering differences
 	currentNamespaces := GetWatcherCurrentNamespaces()
-	if strings.Compare(namespacesForWatcherStr, currentNamespaces) != 0 {
+	desiredNamespaces := strings.ReplaceAll(namespacesForWatcherStr, `\,`, ",")
+	if strings.Compare(sortNamespaceString(desiredNamespaces), sortNamespaceString(currentNamespaces)) != 0 {
 		sugar.Infow("Watcher namespace config changed",
 			"current", currentNamespaces,
 			"desired", namespacesForWatcherStr)
@@ -160,6 +163,15 @@ func sortNamespacesForWatcher(namespacesForWatcher *map[string]bool) []string {
 		})
 	}
 	return sortedNamespaces
+}
+
+func sortNamespaceString(namespacesStr string) string {
+	if namespacesStr == "" {
+		return ""
+	}
+	parts := strings.Split(namespacesStr, ",")
+	sort.Strings(parts)
+	return strings.Join(parts, ",")
 }
 
 func constructNamespaceStringFromMap(namespacesForWatcher *map[string]bool) string {
