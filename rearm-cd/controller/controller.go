@@ -78,8 +78,8 @@ func singleLoopRun() {
 		for _, rd := range rlzDeployments {
 			if rd.IntegrationType == "NONE" || (rd.IntegrationType == "TARGET" && rd.ArtVersion == "") {
 				// Mark as seen to prevent uninstall, but skip install/upgrade
+				// Do NOT add namespace to watcher - if all products in this namespace are NONE, it shouldn't be monitored
 				existingDeployments[rd.Name] = true
-				namespacesForWatcher[rd.Namespace] = true
 				sugar.Debugw("Skipping deployment due to integrationType=NONE or TARGET without version",
 					"product", rd.Product,
 					"deploymentName", rd.Name)
