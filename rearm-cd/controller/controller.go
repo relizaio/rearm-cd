@@ -199,7 +199,15 @@ func processSingleDeployment(rd *cli.RearmDeployment) (bool, error) {
 		compAuth.Type = "NOCREDS"
 	} else {
 		digest := cli.ExtractRlzDigestFromCdxDigest(rd.ArtHash)
-		compAuth = cli.GetComponentAuthByDeliverableDigest(digest, rd.Namespace)
+		var caErr error
+		compAuth, caErr = cli.GetComponentAuthByDeliverableDigest(digest, rd.Namespace)
+		if caErr != nil {
+			sugar.Errorw("Aborting deployment due to hub error fetching component auth",
+				"product", rd.Product,
+				"namespace", rd.Namespace,
+				"error", caErr)
+			return false, caErr
+		}
 	}
 	dirName := rd.Name
 	os.MkdirAll("workspace/"+dirName, 0700)

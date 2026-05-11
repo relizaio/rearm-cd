@@ -17,6 +17,7 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sort"
 	"strconv"
@@ -168,60 +169,74 @@ func DownloadHelmChart(path string, rd *RearmDeployment, pa *ComponentAuth, helm
 	return err
 }
 
-func resolveCustomValuesFromHub(groupPath string, rd *RearmDeployment) bool {
-	present := false
+// resolveCustomValuesFromHub fetches CUSTOM_VALUES from the hub and writes them
+// to disk. Returns (present, error). A nil error with present=false means the
+// hub responded successfully but no CUSTOM_VALUES are configured. A non-nil
+// error means the hub call or its response could not be processed — callers
+// must abort the deployment cycle rather than proceed with stripped values,
+// otherwise a transient hub outage produces a values diff and triggers a
+// spurious redeploy.
+func resolveCustomValuesFromHub(groupPath string, rd *RearmDeployment) (bool, error) {
 	custValCmd := RearmCliApp + " devops instprops --property CUSTOM_VALUES --usenamespaceproduct=true --namespace " + rd.Namespace + " --product '" + rd.Product + "'"
 	sugar.Debug("Fetching CUSTOM_VALUES for product: ", rd.Product, " namespace: ", rd.Namespace)
 	sugar.Debug("Command: ", custValCmd)
 	propsFromCli, stderr, err := shellout(custValCmd)
 	if err != nil {
-		sugar.Error("Failed to fetch CUSTOM_VALUES: ", err)
-		sugar.Error("stderr: ", stderr)
-		return false
+		sugar.Errorw("Failed to fetch CUSTOM_VALUES from hub",
+			"product", rd.Product,
+			"namespace", rd.Namespace,
+			"stderr", stderr,
+			"error", err)
+		return false, fmt.Errorf("fetch CUSTOM_VALUES for %s/%s: %w", rd.Namespace, rd.Product, err)
 	}
 	sugar.Debug("custValues response = ", propsFromCli)
 	var secretPropsResp SecretPropsCliResponse
-	unmarshalErr := json.Unmarshal([]byte(propsFromCli), &secretPropsResp)
-	if unmarshalErr != nil {
-		sugar.Error("Failed to unmarshal CUSTOM_VALUES response: ", unmarshalErr)
-		return false
+	if unmarshalErr := json.Unmarshal([]byte(propsFromCli), &secretPropsResp); unmarshalErr != nil {
+		sugar.Errorw("Failed to unmarshal CUSTOM_VALUES response",
+			"product", rd.Product,
+			"namespace", rd.Namespace,
+			"response", propsFromCli,
+			"error", unmarshalErr)
+		return false, fmt.Errorf("unmarshal CUSTOM_VALUES for %s/%s: %w", rd.Namespace, rd.Product, unmarshalErr)
 	}
 
-	custValues := ""
-	if len(secretPropsResp.Properties) > 0 {
-		prop := secretPropsResp.Properties[0]
-		custValues = prop.Value
-		sugar.Debug("CUSTOM_VALUES found, length: ", len(custValues), " bytes")
-	} else {
+	if len(secretPropsResp.Properties) == 0 {
 		sugar.Debug("No CUSTOM_VALUES found for product: ", rd.Product, " namespace: ", rd.Namespace)
+		return false, nil
 	}
 
-	if len(custValues) > 0 {
-		helmChartName := GetChartNameFromDeployment(rd)
-		customValuesFilePath := groupPath + helmChartName + "/" + CustomValuesFile
-		sugar.Debug("Writing CUSTOM_VALUES to: ", customValuesFilePath)
-		shellout("rm -rf " + customValuesFilePath)
-		customValuesFile, err := os.Create(customValuesFilePath)
-		if err != nil {
-			sugar.Error("Failed to create custom values file: ", err)
-		} else {
-			bytesWritten, writeErr := customValuesFile.WriteString(custValues)
-			if writeErr != nil {
-				sugar.Error("Failed to write custom values: ", writeErr)
-			} else {
-				sugar.Debug("Wrote ", bytesWritten, " bytes to custom-values.yaml")
-			}
-			customValuesFile.Close()
-			present = true
-		}
+	custValues := secretPropsResp.Properties[0].Value
+	sugar.Debug("CUSTOM_VALUES found, length: ", len(custValues), " bytes")
+	if len(custValues) == 0 {
+		return false, nil
 	}
 
-	return present
+	helmChartName := GetChartNameFromDeployment(rd)
+	customValuesFilePath := groupPath + helmChartName + "/" + CustomValuesFile
+	sugar.Debug("Writing CUSTOM_VALUES to: ", customValuesFilePath)
+	shellout("rm -rf " + customValuesFilePath)
+	customValuesFile, err := os.Create(customValuesFilePath)
+	if err != nil {
+		return false, fmt.Errorf("create custom values file %s: %w", customValuesFilePath, err)
+	}
+	defer customValuesFile.Close()
+	bytesWritten, writeErr := customValuesFile.WriteString(custValues)
+	if writeErr != nil {
+		return false, fmt.Errorf("write custom values to %s: %w", customValuesFilePath, writeErr)
+	}
+	sugar.Debug("Wrote ", bytesWritten, " bytes to custom-values.yaml")
+	return true, nil
 }
 
 func MergeHelmValues(groupPath string, rd *RearmDeployment) error {
 	sugar.Debug("=== Starting Helm Values Merge ===")
-	hasCustomValues := resolveCustomValuesFromHub(groupPath, rd)
+	hasCustomValues, custValErr := resolveCustomValuesFromHub(groupPath, rd)
+	if custValErr != nil {
+		// Fail closed: a hub outage must not look like a configuration change.
+		// Returning early aborts this deployment for the cycle; the loop retries
+		// on the next pass when the hub is reachable.
+		return custValErr
+	}
 	helmChartName := GetChartNameFromDeployment(rd)
 	valuesFlags := " -f " + rd.ConfigFile
 	if hasCustomValues {

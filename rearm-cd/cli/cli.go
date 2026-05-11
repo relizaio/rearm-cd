@@ -320,12 +320,31 @@ func ParseInstanceCycloneDXIntoDeployments(cyclonedxManifest string) []RearmDepl
 	return rlzDeployments
 }
 
-func GetComponentAuthByDeliverableDigest(delDigest, releaseNamespace string) ComponentAuth {
+// GetComponentAuthByDeliverableDigest fetches deliverable download credentials
+// from the hub. Returns a non-nil error on shellout or unmarshal failure so
+// callers can fail closed instead of proceeding with empty credentials, which
+// would otherwise mask hub outages as auth-less downloads.
+func GetComponentAuthByDeliverableDigest(delDigest, releaseNamespace string) (ComponentAuth, error) {
 	//TODO: use --releasens when api is updated
-	authResp, _, _ := shellout(RearmCliApp + " devops delsecrets --deldigest " + delDigest + " --namespace " + SecretsNamespace + " --instanceuri " + releaseNamespace)
+	authResp, stderr, err := shellout(RearmCliApp + " devops delsecrets --deldigest " + delDigest + " --namespace " + SecretsNamespace + " --instanceuri " + releaseNamespace)
+	if err != nil {
+		sugar.Errorw("Failed to fetch deliverable download secrets from hub",
+			"deliverableDigest", delDigest,
+			"namespace", releaseNamespace,
+			"stderr", stderr,
+			"error", err)
+		return ComponentAuth{}, fmt.Errorf("fetch delsecrets for %s: %w", delDigest, err)
+	}
 	var componentAuth map[string]ComponentAuth
-	json.Unmarshal([]byte(authResp), &componentAuth)
-	return componentAuth["deliverableDownloadSecrets"]
+	if unmarshalErr := json.Unmarshal([]byte(authResp), &componentAuth); unmarshalErr != nil {
+		sugar.Errorw("Failed to unmarshal delsecrets response",
+			"deliverableDigest", delDigest,
+			"namespace", releaseNamespace,
+			"response", authResp,
+			"error", unmarshalErr)
+		return ComponentAuth{}, fmt.Errorf("unmarshal delsecrets for %s: %w", delDigest, unmarshalErr)
+	}
+	return componentAuth["deliverableDownloadSecrets"], nil
 }
 
 func ProduceSecretYaml(w io.Writer, rd *RearmDeployment, compAuth ComponentAuth, namespace string, helmInfo HelmRepoInfo) {
