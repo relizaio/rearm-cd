@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.6-alpine3.23@sha256:98e6cffc31ccc44c7c15d83df1d69891efee8115a5bb7ede2bf30a38af3e3c92 AS build-stage
+FROM --platform=$BUILDPLATFORM golang:1.26.3-alpine3.23@sha256:91eda9776261207ea25fd06b5b7fed8d397dd2c0a283e77f2ab6e91bfa71079d AS build-stage
 WORKDIR /build
 RUN apk add --update --no-cache cosign unzip 
 ENV CGO_ENABLED=0
@@ -7,19 +7,19 @@ ARG TARGETOS
 ARG TARGETARCH
 RUN go test ./...
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz ./kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.35.0/cosign.pub ./cosign.pub
-ADD https://get.helm.sh/helm-v4.1.3-linux-${TARGETARCH}.tar.gz ./helm-v4.1.3-linux-${TARGETARCH}.tar.gz
-ADD https://dl.k8s.io/v1.33.8/bin/linux/${TARGETARCH}/kubectl ./kubectl
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/kubeseal-0.36.6-linux-${TARGETARCH}.tar.gz ./kubeseal-0.36.6-linux-${TARGETARCH}.tar.gz
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/kubeseal-0.36.6-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.36.6-linux-${TARGETARCH}.tar.gz.sig
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.36.6/cosign.pub ./cosign.pub
+ADD https://get.helm.sh/helm-v4.1.4-linux-${TARGETARCH}.tar.gz ./helm-v4.1.4-linux-${TARGETARCH}.tar.gz
+ADD https://dl.k8s.io/v1.34.7/bin/linux/${TARGETARCH}/kubectl ./kubectl
 ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.05.5/rearm-26.05.5-linux-${TARGETARCH}.zip ./rearm-26.05.5-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
-RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
-RUN tar -xzvf kubeseal-0.35.0-linux-${TARGETARCH}.tar.gz
-RUN tar -xzvf helm-v4.1.3-linux-${TARGETARCH}.tar.gz
+RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.36.6-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.36.6-linux-${TARGETARCH}.tar.gz
+RUN tar -xzvf kubeseal-0.36.6-linux-${TARGETARCH}.tar.gz
+RUN tar -xzvf helm-v4.1.4-linux-${TARGETARCH}.tar.gz
 RUN unzip rearm-26.05.5-linux-${TARGETARCH}.zip
 
-FROM alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659 AS release-stage
+FROM alpine:3.23.4@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS release-stage
 ARG TARGETARCH
 ARG CI_ENV=noci
 ARG GIT_COMMIT=git_commit_undefined
