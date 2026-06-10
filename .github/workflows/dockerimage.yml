@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM CD App
-        uses: relizaio/rearm-docker-action@a2d6978bea42cc6d707515bb927f0c693427fe58 # v1.10.0
+        uses: relizaio/rearm-docker-action@f9ff6276e9c524a5dcaa00470c29a8962ecf47c2 # v1.13.1
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM Watcher App
-        uses: relizaio/rearm-docker-action@a2d6978bea42cc6d707515bb927f0c693427fe58 # v1.10.0
+        uses: relizaio/rearm-docker-action@f9ff6276e9c524a5dcaa00470c29a8962ecf47c2 # v1.13.1
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
@@ -51,6 +51,7 @@ jobs:
           enable_public_cosign_sigstore: true
           enable_codeql: false
   build-rearm-watcher-helm:
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
       id-token: write
@@ -58,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM Watcher Helm Chart
-        uses: relizaio/rearm-helm-action@a9984fe2e241a8e5838be5415f58936dc92c2421 # v1.7.0
+        uses: relizaio/rearm-helm-action@c83365ad50ee4075d92d041c186cf592e158fc01 # v1.10.1
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
@@ -71,6 +72,7 @@ jobs:
           enable_sbom: true
           enable_public_cosign_sigstore: true
   build-rearm-cd-helm:
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
       id-token: write
@@ -78,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build ReARM CD Helm Chart
-        uses: relizaio/rearm-helm-action@a9984fe2e241a8e5838be5415f58936dc92c2421 # v1.7.0
+        uses: relizaio/rearm-helm-action@c83365ad50ee4075d92d041c186cf592e158fc01 # v1.10.1
         with:
           registry_username: ${{ secrets.DOCKER_LOGIN }}
           registry_password: ${{ secrets.DOCKER_TOKEN }}
