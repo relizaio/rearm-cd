@@ -17,6 +17,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"text/template"
 	"time"
 
@@ -128,14 +130,53 @@ func init() {
 	}
 }
 
+// shellTimeout caps how long any shelled-out command (rearm CLI, helm,
+// kubectl, kubeseal, tar, ...) may run. Without a cap, a single network
+// call that never returns — e.g. `rearm devops exportinst` against a hub
+// connection that stalls without a TCP reset — blocks the controller's
+// single-threaded reconcile loop indefinitely: no syncs, no logs, while
+// the pod stays Ready, so Kubernetes never restarts it. Observed in the
+// field as multi-hour silent reconciliation gaps.
+// Override with REARM_CD_SHELL_TIMEOUT_SECONDS; default 10 minutes (long
+// enough for slow helm upgrades and workspace backups).
+func shellTimeout() time.Duration {
+	if v := os.Getenv("REARM_CD_SHELL_TIMEOUT_SECONDS"); v != "" {
+		if secs, err := strconv.Atoi(v); err == nil && secs > 0 {
+			return time.Duration(secs) * time.Second
+		}
+		sugar.Warn("Invalid REARM_CD_SHELL_TIMEOUT_SECONDS value, using default: ", v)
+	}
+	return 10 * time.Minute
+}
+
 func shellout(command string) (string, string, error) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command(ShellToUse, "-c", command)
+	timeout := shellTimeout()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, ShellToUse, "-c", command)
 	cmd.Dir = "/app" // Set working directory to /app where tools are located
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	// Run the command in its own process group and, on timeout, kill the
+	// whole group: helm / kubectl / rearm grandchildren of the shell would
+	// otherwise survive the shell's death and keep the inherited
+	// stdout/stderr pipes open, which would keep cmd.Run blocked.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error {
+		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	}
+	// Belt and suspenders: if anything in the group still survives the
+	// kill, stop waiting on the pipes shortly after.
+	cmd.WaitDelay = 10 * time.Second
 	err := cmd.Run()
+	if ctx.Err() == context.DeadlineExceeded {
+		// Do not echo the full command line — some commands carry
+		// credentials (e.g. helm registry login --password ...).
+		bin, _, _ := strings.Cut(command, " ")
+		err = fmt.Errorf("shellout timed out after %s running %s — killed process group", timeout, bin)
+	}
 
 	if err != nil {
 		sugar.Error("stdout: ", stdout.String(), "stderr: ", stderr.String(), "error: ", err.Error())
