@@ -3,10 +3,10 @@ WORKDIR /build
 ARG TARGETARCH
 COPY . .
 RUN apk add --update --no-cache cosign unzip 
-ADD https://dl.k8s.io/v1.34.9/bin/linux/${TARGETARCH}/kubectl ./kubectl
-ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.07.1/rearm-26.07.1-linux-${TARGETARCH}.zip ./rearm-26.07.1-linux-${TARGETARCH}.zip
+ADD https://dl.k8s.io/v1.35.6/bin/linux/${TARGETARCH}/kubectl ./kubectl
+ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.07.2/rearm-26.07.2-linux-${TARGETARCH}.zip ./rearm-26.07.2-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
-RUN unzip rearm-26.07.1-linux-${TARGETARCH}.zip
+RUN unzip rearm-26.07.2-linux-${TARGETARCH}.zip
 
 FROM alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS release-stage
 ARG TARGETARCH
