@@ -83,7 +83,7 @@ func init() {
 	if len(os.Getenv("WATCHER_HELM_VERSION")) > 0 {
 		watcherHelmVersion = os.Getenv("WATCHER_HELM_VERSION")
 	} else {
-		watcherHelmVersion = "0.1.22"
+		watcherHelmVersion = "0.1.23"
 	}
 	if len(os.Getenv("WATCHER_HELM_CHART")) > 0 {
 		watcherHelmChart = os.Getenv("WATCHER_HELM_CHART")
