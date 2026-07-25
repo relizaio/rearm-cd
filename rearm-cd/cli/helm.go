@@ -252,10 +252,13 @@ func MergeHelmValues(groupPath string, rd *RearmDeployment) error {
 		sugar.Error("Failed to merge helm values: ", err)
 		sugar.Error("stdout: ", stdout)
 		sugar.Error("stderr: ", stderr)
-	} else {
-		sugar.Debug("✅ Helm values merged successfully")
+		// Carry the subprocess output so the controller can classify and report
+		// this to ReARM. Only stdout/stderr -- never the command, which can
+		// contain credentials.
+		return NewPhaseError(PhaseValuesMerge, err, stdout, stderr)
 	}
-	return err
+	sugar.Debug("✅ Helm values merged successfully")
+	return nil
 }
 
 func ResolvePreviousDiffFile(groupPath string) error {
@@ -279,10 +282,10 @@ func ReplaceTagsForInstall(groupPath string, namespace string) error {
 		sugar.Error("Failed to replace tags: ", err)
 		sugar.Error("stdout: ", stdout)
 		sugar.Error("stderr: ", stderr)
-	} else {
-		sugar.Info("✅ Tags replaced successfully, install-values.yaml created")
+		return NewPhaseError(PhaseTagReplace, err, stdout, stderr)
 	}
-	return err
+	sugar.Info("✅ Tags replaced successfully, install-values.yaml created")
+	return nil
 }
 
 func IsValuesDiff(groupPath string) bool {
@@ -340,12 +343,12 @@ func InstallHelmChart(groupPath string, rd *RearmDeployment) error {
 	stdout, stderr, err := dryRunShellout(helmCmd)
 	if err == nil {
 		sugar.Info("Successfully deployed chart ", helmChartName, " version ", rd.ArtVersion, " to namespace ", rd.Namespace)
-	} else {
-		sugar.Error("Failed to install chart: ", err)
-		sugar.Error("stdout: ", stdout)
-		sugar.Error("stderr: ", stderr)
+		return nil
 	}
-	return err
+	sugar.Error("Failed to install chart: ", err)
+	sugar.Error("stdout: ", stdout)
+	sugar.Error("stderr: ", stderr)
+	return NewPhaseError(PhaseHelmInstall, err, stdout, stderr)
 }
 
 func RecordDeployedData(groupPath string, rd *RearmDeployment) {
