@@ -115,11 +115,21 @@ func singleLoopRun() {
 
 		if !isError && len(rlzDeployments) > 0 {
 			deleteObsoleteDeployments(&existingDeployments)
+		} else if isError && len(rlzDeployments) > 0 {
+			// Worth saying out loud: a deployment error also suppresses cleanup
+			// of obsolete deployments, so a failing reconcile silently leaves
+			// stale workloads running. Previously this only showed up as
+			// absence of the cleanup log.
+			sugar.Warn("Skipping cleanup of obsolete deployments because a deployment failed this cycle")
 		}
 
 		if didDeploy {
 			helmDataStreamToHub(&existingDeployments)
 		}
+
+		// Ship whatever failed this cycle to ReARM so it is visible on the
+		// Instance view. Best-effort by contract -- see cli.ReportDeployFailures.
+		cli.ReportDeployFailures()
 	}
 }
 
@@ -206,6 +216,7 @@ func processSingleDeployment(rd *cli.RearmDeployment) (bool, error) {
 				"product", rd.Product,
 				"namespace", rd.Namespace,
 				"error", caErr)
+			cli.RecordDeployFailure(rd.Name, rd.Namespace, cli.PhaseSecrets, caErr)
 			return false, caErr
 		}
 	}
@@ -280,6 +291,7 @@ func processSingleDeployment(rd *cli.RearmDeployment) (bool, error) {
 			doInstall = true
 		} else {
 			// Error already logged in DownloadHelmChart with full context
+			cli.RecordDeployFailure(rd.Name, rd.Namespace, cli.PhaseHelmInstall, err)
 			isError = true
 		}
 	}
@@ -291,11 +303,13 @@ func processSingleDeployment(rd *cli.RearmDeployment) (bool, error) {
 
 	if !isError {
 		err = cli.MergeHelmValues(groupPath, rd)
+		cli.RecordDeployFailure(rd.Name, rd.Namespace, cli.PhaseValuesMerge, err)
 		isError = (err != nil)
 	}
 
 	if !isError {
 		err = cli.ReplaceTagsForDiff(groupPath, rd.Namespace)
+		cli.RecordDeployFailure(rd.Name, rd.Namespace, cli.PhaseTagReplace, err)
 		isError = (err != nil)
 	}
 
@@ -308,16 +322,19 @@ func processSingleDeployment(rd *cli.RearmDeployment) (bool, error) {
 
 	if !isError && doInstall {
 		err = cli.SetHelmChartAppVersion(groupPath, rd)
+		cli.RecordDeployFailure(rd.Name, rd.Namespace, cli.PhaseHelmInstall, err)
 		isError = (err != nil)
 	}
 
 	if !isError && doInstall {
 		err = cli.ReplaceTagsForInstall(groupPath, rd.Namespace)
+		cli.RecordDeployFailure(rd.Name, rd.Namespace, cli.PhaseTagReplace, err)
 		isError = (err != nil)
 	}
 
 	if !isError && doInstall {
 		err := cli.InstallApplication(groupPath, rd)
+		cli.RecordDeployFailure(rd.Name, rd.Namespace, cli.PhaseHelmInstall, err)
 		isError = (err != nil)
 	}
 
