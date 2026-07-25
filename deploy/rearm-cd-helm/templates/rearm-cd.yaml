@@ -42,6 +42,8 @@ spec:
             value: {{ .Values.watcherHelmVersion | quote }}
           - name: WATCHER_HELM_CHART
             value: {{ .Values.watcherHelmChart | quote }}
+          - name: HELM_FORCE_CONFLICTS
+            value: {{ .Values.helmForceConflicts | quote }}
           - name: BACKUP_ENABLED
             value: {{ .Values.backup.enabled | quote }}
           - name: BACKUP_SCHEDULE

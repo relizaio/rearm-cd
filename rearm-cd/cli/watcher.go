@@ -141,7 +141,7 @@ func installWatcherRoutine(namespacesForWatcherStr string) {
 	retryLeft := 3
 	watcherInstalled := false
 	for !watcherInstalled && retryLeft > 0 {
-		_, _, err := dryRunShellout(HelmApp + " upgrade --install rearm-watcher -n " + RearmCdNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set rearmUri=" + rearmUri + watcherImageSet + " --version " + watcherHelmVersion + " " + watcherHelmChart)
+		_, _, err := dryRunShellout(HelmApp + " upgrade --install " + HelmForceConflictsFlag() + "rearm-watcher -n " + RearmCdNamespace + " --set namespace=\"" + namespacesForWatcherStr + "\" --set rearmUri=" + rearmUri + watcherImageSet + " --version " + watcherHelmVersion + " " + watcherHelmChart)
 		if err == nil {
 			watcherInstalled = true
 		} else {

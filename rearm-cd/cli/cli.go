@@ -54,6 +54,12 @@ var (
 	argoInfo           ArgoInfo
 	EnvMode            string
 	DryRun             bool
+	// ForceConflicts adds --force-conflicts to helm upgrades. Off by default:
+	// it makes helm's field manager seize ownership of fields another manager
+	// owns, which is the right call for recovering a deployment wedged by a
+	// manual kubectl edit/set-image, but the wrong default -- it would also
+	// silently stomp legitimate out-of-band ownership.
+	ForceConflicts bool
 )
 
 const (
@@ -108,6 +114,18 @@ func init() {
 		DryRun = true
 	}
 
+	// Server-side-apply conflict override. A field edited out-of-band (e.g.
+	// `kubectl edit` on a helm-managed workload) leaves that field owned by
+	// another manager, and every subsequent reconcile then fails with
+	// "conflict occurred while applying object ... conflict with \"kubectl-edit\"".
+	// Enabling this lets the reconcile recover itself instead of needing a
+	// manual out-of-band helm upgrade.
+	ForceConflicts = false
+	if strings.ToLower(os.Getenv("HELM_FORCE_CONFLICTS")) == "true" {
+		ForceConflicts = true
+		sugar.Info("HELM_FORCE_CONFLICTS enabled: helm upgrades will force server-side apply conflicts")
+	}
+
 	if DryRun {
 		sugar.Info("DRY_RUN mode is enabled - mutating helm/kubectl commands will be logged but not executed")
 	}
@@ -147,6 +165,17 @@ func shellTimeout() time.Duration {
 		sugar.Warn("Invalid REARM_CD_SHELL_TIMEOUT_SECONDS value, using default: ", v)
 	}
 	return 10 * time.Minute
+}
+
+// HelmForceConflictsFlag returns the --force-conflicts flag (with a trailing
+// space) when HELM_FORCE_CONFLICTS is enabled, else an empty string. Kept as a
+// helper so every helm upgrade site opts in the same way rather than each
+// growing its own conditional.
+func HelmForceConflictsFlag() string {
+	if ForceConflicts {
+		return "--force-conflicts "
+	}
+	return ""
 }
 
 func shellout(command string) (string, string, error) {
