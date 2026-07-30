@@ -135,27 +135,83 @@ type HelmRepoInfo struct {
 	OciUri       string
 }
 
-func DownloadHelmChart(path string, rd *RearmDeployment, pa *ComponentAuth, helmRepoInfo HelmRepoInfo) error {
+// ociRef is the reference passed to `helm pull`. An explicit oci:// URI on the
+// registered artifact wins; otherwise it is derived from the repo host, so the
+// OCI transport is usable even when detection did not select it.
+func (hri HelmRepoInfo) ociRef() string {
+	if hri.OciUri != "" {
+		return hri.OciUri
+	}
+	return "oci://" + hri.RepoHost + "/" + hri.ChartName
+}
+
+// classicRepoUri is the https:// chart-repository URI for the `helm repo add`
+// transport. It is rebuilt from RepoHost rather than reusing RepoUri, which
+// carries an oci:// scheme whenever OCI was detected.
+func (hri HelmRepoInfo) classicRepoUri() string {
+	return "https://" + hri.RepoHost
+}
+
+func pullHelmChartOci(path string, rd *RearmDeployment, pa *ComponentAuth, hri HelmRepoInfo) error {
 	var err error
+	if pa.Type != "NOCREDS" {
+		_, _, err = shellout(HelmApp + " registry login " + hri.RegistryHost + " --username " + pa.Login + " --password " + pa.Password)
+	}
+	if err == nil {
+		_, _, err = shellout(HelmApp + " pull " + hri.ociRef() + " --version " + rd.ArtVersion + " -d " + path)
+	}
+	return err
+}
+
+func pullHelmChartClassic(path string, rd *RearmDeployment, pa *ComponentAuth, hri HelmRepoInfo) error {
+	var err error
+	repoUri := hri.classicRepoUri()
+	if pa.Type != "NOCREDS" {
+		_, _, err = shellout(HelmApp + " repo add " + hri.ChartName + " " + repoUri + " --force-update --username " + pa.Login + " --password " + pa.Password)
+	} else {
+		_, _, err = shellout(HelmApp + " repo add " + hri.ChartName + " " + repoUri + " --force-update")
+	}
+	if err == nil {
+		shellout(HelmApp + " repo update " + hri.ChartName)
+		// This pull error used to be discarded, which made a failed pull after a
+		// successful `repo add` look like success. The retry below needs it.
+		_, _, err = shellout(HelmApp + " pull " + hri.ChartName + "/" + hri.ChartName + " --version " + rd.ArtVersion + " -d " + path)
+	}
+	return err
+}
+
+func DownloadHelmChart(path string, rd *RearmDeployment, pa *ComponentAuth, helmRepoInfo HelmRepoInfo) error {
 	cleanupHelmChart(path + helmRepoInfo.ChartName)
 
+	primary, secondary := pullHelmChartClassic, pullHelmChartOci
+	primaryKind, secondaryKind := "classic", "oci"
 	if helmRepoInfo.UseOci {
+		primary, secondary = pullHelmChartOci, pullHelmChartClassic
+		primaryKind, secondaryKind = "oci", "classic"
+	}
 
-		if pa.Type != "NOCREDS" {
-			_, _, err = shellout(HelmApp + " registry login " + helmRepoInfo.RegistryHost + " --username " + pa.Login + " --password " + pa.Password)
-		}
-		if err == nil {
-			_, _, err = shellout(HelmApp + " pull " + helmRepoInfo.OciUri + " --version " + rd.ArtVersion + " -d " + path)
-		}
-	} else {
-		if pa.Type != "NOCREDS" {
-			_, _, err = shellout(HelmApp + " repo add " + helmRepoInfo.ChartName + " " + helmRepoInfo.RepoUri + " --force-update --username " + pa.Login + " --password " + pa.Password)
+	err := primary(path, rd, pa, helmRepoInfo)
+	if err != nil {
+		// Transport selection is a hostname heuristic, so it cannot know every
+		// registry: a failure on the guessed transport is not conclusive. Retry
+		// with the other one before failing the deployment. This is what keeps a
+		// chart on an unrecognised OCI registry deployable without an allowlist
+		// entry, and vice versa.
+		sugar.Infow("Helm chart download failed, retrying with the other transport",
+			"product", rd.Product,
+			"chartName", helmRepoInfo.ChartName,
+			"tried", primaryKind,
+			"retryingWith", secondaryKind,
+			"error", err)
+		cleanupHelmChart(path + helmRepoInfo.ChartName)
+		if fallbackErr := secondary(path, rd, pa, helmRepoInfo); fallbackErr == nil {
+			err = nil
 		} else {
-			_, _, err = shellout(HelmApp + " repo add " + helmRepoInfo.ChartName + " " + helmRepoInfo.RepoUri + " --force-update")
-		}
-		if err == nil {
-			shellout(HelmApp + " repo update " + helmRepoInfo.ChartName)
-			shellout(HelmApp + " pull " + helmRepoInfo.ChartName + "/" + helmRepoInfo.ChartName + " --version " + rd.ArtVersion + " -d " + path)
+			sugar.Errorw("Helm chart download failed on both transports",
+				"product", rd.Product,
+				"chartName", helmRepoInfo.ChartName,
+				primaryKind+"Error", err,
+				secondaryKind+"Error", fallbackErr)
 		}
 	}
 	if err == nil {
