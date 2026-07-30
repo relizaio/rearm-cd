@@ -88,7 +88,11 @@ func GetHelmRepoInfoFromDeployment(rd *RearmDeployment) HelmRepoInfo {
 		helmRepoInfo.OciUri = rd.ArtUri
 	} else if strings.Contains(rd.ArtUri, "azurecr.io") || strings.Contains(rd.ArtUri, "ghcr.io") ||
 		strings.Contains(rd.ArtUri, ".ecr.") || strings.Contains(rd.ArtUri, ".pkg.dev") ||
-		(strings.Contains(rd.ArtUri, ".relizahub.com") && !strings.Contains(rd.ArtUri, "/chartrepo/")) {
+		((strings.Contains(rd.ArtUri, ".relizahub.com") || strings.Contains(rd.ArtUri, ".rearmhq.com")) &&
+			!strings.Contains(rd.ArtUri, "/chartrepo/")) {
+		// registry.rearmhq.com is OCI-only, same as relizahub. Without this a chart
+		// there falls through to the classic branch, which fetches index.yaml and
+		// gets 403 from the registry.
 		helmRepoInfo.UseOci = true
 	}
 
