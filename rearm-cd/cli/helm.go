@@ -146,10 +146,16 @@ func (hri HelmRepoInfo) ociRef() string {
 	return "oci://" + hri.RepoHost + "/" + hri.ChartName
 }
 
-// classicRepoUri is the https:// chart-repository URI for the `helm repo add`
-// transport. It is rebuilt from RepoHost rather than reusing RepoUri, which
-// carries an oci:// scheme whenever OCI was detected.
+// classicRepoUri is the chart-repository URI for the `helm repo add` transport.
+// A repository recorded with an explicit http:// or https:// scheme (which is what
+// selects the classic transport) is used exactly as recorded, so an http-only
+// repository stays on http. Otherwise RepoUri carries the oci:// scheme of OCI
+// detection, and https:// is rebuilt from RepoHost: the fallback for a classic
+// repository recorded as a bare host, which detection treats as OCI.
 func (hri HelmRepoInfo) classicRepoUri() string {
+	if strings.HasPrefix(hri.RepoUri, "http://") || strings.HasPrefix(hri.RepoUri, "https://") {
+		return hri.RepoUri
+	}
 	return "https://" + hri.RepoHost
 }
 
