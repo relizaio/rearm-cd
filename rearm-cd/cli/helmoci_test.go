@@ -80,3 +80,67 @@ func TestHelmOciDetection(t *testing.T) {
 		})
 	}
 }
+
+// The transport fallback in DownloadHelmChart retries a failed download on the
+// other transport, so both references must be derivable regardless of which
+// transport detection picked. These helpers are where that derivation lives.
+func TestHelmTransportRefs(t *testing.T) {
+	t.Run("oci ref derived for a classic-detected repo", func(t *testing.T) {
+		// An explicit https:// scheme selects the classic transport, so UseOci=false
+		// and OciUri is unset. The OCI fallback still needs a usable reference.
+		rd := &RearmDeployment{ArtUri: "https://charts.example.com/mafia"}
+		hri := GetHelmRepoInfoFromDeployment(rd)
+		if hri.UseOci {
+			t.Fatalf("precondition: expected classic detection for %q", rd.ArtUri)
+		}
+		if got, want := hri.ociRef(), "oci://charts.example.com/mafia"; got != want {
+			t.Errorf("ociRef() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("explicit oci uri wins", func(t *testing.T) {
+		rd := &RearmDeployment{ArtUri: "oci://registry.example.com/charts/mafia"}
+		hri := GetHelmRepoInfoFromDeployment(rd)
+		if got, want := hri.ociRef(), "oci://registry.example.com/charts/mafia"; got != want {
+			t.Errorf("ociRef() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("classic uri rebuilt for an oci-detected repo", func(t *testing.T) {
+		// For an OCI-detected chart RepoUri carries the oci:// scheme, so the
+		// classic fallback must rebuild https:// from the host rather than pass
+		// RepoUri to `helm repo add` verbatim.
+		rd := &RearmDeployment{ArtUri: "registry.rearmhq.com/card-shuffle/mafia"}
+		hri := GetHelmRepoInfoFromDeployment(rd)
+		if !hri.UseOci {
+			t.Fatalf("precondition: expected OCI detection for %q", rd.ArtUri)
+		}
+		if got, want := hri.classicRepoUri(), "https://registry.rearmhq.com/card-shuffle"; got != want {
+			t.Errorf("classicRepoUri() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("bare-host classic repo falls back to its https repository", func(t *testing.T) {
+		// A classic repository recorded without a scheme is detected as OCI. The
+		// fallback must reach the repository itself, path included.
+		rd := &RearmDeployment{ArtUri: "helm.traefik.io/traefik/traefik"}
+		hri := GetHelmRepoInfoFromDeployment(rd)
+		if !hri.UseOci {
+			t.Fatalf("precondition: expected OCI detection for %q", rd.ArtUri)
+		}
+		if got, want := hri.classicRepoUri(), "https://helm.traefik.io/traefik"; got != want {
+			t.Errorf("classicRepoUri() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("explicit http repo stays on http", func(t *testing.T) {
+		rd := &RearmDeployment{ArtUri: "http://charts.internal.example/repo/mafia"}
+		hri := GetHelmRepoInfoFromDeployment(rd)
+		if hri.UseOci {
+			t.Fatalf("precondition: expected classic detection for %q", rd.ArtUri)
+		}
+		if got, want := hri.classicRepoUri(), "http://charts.internal.example/repo"; got != want {
+			t.Errorf("classicRepoUri() = %q, want %q", got, want)
+		}
+	})
+}
