@@ -81,19 +81,20 @@ func GetHelmRepoInfoFromDeployment(rd *RearmDeployment) HelmRepoInfo {
 		helmRepoInfo.RepoUri = rd.ArtUri
 	}
 
-	// Determine if this is an OCI registry based on domain patterns or oci:// prefix
-	helmRepoInfo.UseOci = false
-	if strings.Contains(rd.ArtUri, "oci://") {
-		helmRepoInfo.UseOci = true
+	// OCI unless the chart address says otherwise. Every deployment reaching here comes from a BOM
+	// component with HelmMimeType, application/vnd.cncf.helm.config.v1+json, which is the config
+	// media type of a chart stored in an OCI registry: the chart is an OCI artifact by definition.
+	// Guessing from the registry's hostname instead missed every registry not on the list, and
+	// a miss fell through to the classic branch, which runs `helm repo add` and fetches index.yaml,
+	// a 403 from an OCI-only registry (seen with registry.rearmhq.com before it was listed).
+	// A classic repository is still used when the address asks for one: an explicit http:// or
+	// https:// scheme, or a Harbor /chartrepo/ path.
+	helmRepoInfo.UseOci = true
+	if strings.HasPrefix(rd.ArtUri, "oci://") {
 		helmRepoInfo.OciUri = rd.ArtUri
-	} else if strings.Contains(rd.ArtUri, "azurecr.io") || strings.Contains(rd.ArtUri, "ghcr.io") ||
-		strings.Contains(rd.ArtUri, ".ecr.") || strings.Contains(rd.ArtUri, ".pkg.dev") ||
-		((strings.Contains(rd.ArtUri, ".relizahub.com") || strings.Contains(rd.ArtUri, ".rearmhq.com")) &&
-			!strings.Contains(rd.ArtUri, "/chartrepo/")) {
-		// registry.rearmhq.com is OCI-only, same as relizahub. Without this a chart
-		// there falls through to the classic branch, which fetches index.yaml and
-		// gets 403 from the registry.
-		helmRepoInfo.UseOci = true
+	} else if strings.HasPrefix(rd.ArtUri, "http://") || strings.HasPrefix(rd.ArtUri, "https://") ||
+		strings.Contains(rd.ArtUri, "/chartrepo/") {
+		helmRepoInfo.UseOci = false
 	}
 
 	// Add protocol if missing

@@ -1,13 +1,15 @@
 package cli
 
 import (
+	"strings"
 	"testing"
 )
 
-// OCI detection is a hostname allowlist, so every registry domain we publish
-// charts to has to be listed. A miss is not a clean failure: the chart falls
-// through to the classic branch, which runs `helm repo add` + index.yaml and
-// gets a 403 from an OCI-only registry.
+// A chart is OCI unless its address asks for a classic repository (an explicit
+// http(s):// scheme or a Harbor /chartrepo/ path): every deployment comes from a
+// BOM component whose media type is the OCI Helm chart config. The previous
+// hostname allowlist sent any unlisted registry to the classic branch, which runs
+// `helm repo add` + index.yaml and gets a 403 from an OCI-only registry.
 func TestHelmOciDetection(t *testing.T) {
 	cases := []struct {
 		name       string
@@ -39,8 +41,25 @@ func TestHelmOciDetection(t *testing.T) {
 			wantUseOci: false,
 		},
 		{
-			name:       "unknown host stays a classic repo",
-			artUri:     "charts.example.com/mafia",
+			name:       "any other registry is OCI too, no allowlist",
+			artUri:     "charts.example.com/team/mafia",
+			wantUseOci: true,
+			wantOciUri: "oci://charts.example.com/team/mafia",
+		},
+		{
+			name:       "rearmhq dtrack5 chart (scully-rearm-cd 403) is OCI",
+			artUri:     "registry.rearmhq.com/library/dtrack5",
+			wantUseOci: true,
+			wantOciUri: "oci://registry.rearmhq.com/library/dtrack5",
+		},
+		{
+			name:       "explicit https scheme stays a classic repo",
+			artUri:     "https://charts.example.com/mafia",
+			wantUseOci: false,
+		},
+		{
+			name:       "explicit http scheme stays a classic repo",
+			artUri:     "http://charts.example.com/mafia",
 			wantUseOci: false,
 		},
 	}
@@ -55,8 +74,8 @@ func TestHelmOciDetection(t *testing.T) {
 			if tc.wantUseOci && got.OciUri != tc.wantOciUri {
 				t.Errorf("OciUri = %q, want %q", got.OciUri, tc.wantOciUri)
 			}
-			if !tc.wantUseOci && got.RepoUri[:8] != "https://" {
-				t.Errorf("classic repo should get an https:// prefix, got %q", got.RepoUri)
+			if !tc.wantUseOci && !strings.HasPrefix(got.RepoUri, "https://") && !strings.HasPrefix(got.RepoUri, "http://") {
+				t.Errorf("classic repo should keep or get an http(s):// scheme, got %q", got.RepoUri)
 			}
 		})
 	}
