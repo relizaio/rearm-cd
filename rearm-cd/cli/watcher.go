@@ -31,6 +31,7 @@ const (
 )
 
 func InstallWatcher(namespacesForWatcher *map[string]bool) {
+	namespacesForWatcher = onlyExistingNamespaces(namespacesForWatcher)
 	namespacesForWatcherStr := ""
 	if nil != *namespacesForWatcher && len(*namespacesForWatcher) > 0 {
 		namespacesForWatcherStr = constructNamespaceStringFromMap(namespacesForWatcher)
@@ -184,4 +185,44 @@ func constructNamespaceStringFromMap(namespacesForWatcher *map[string]bool) stri
 	nsByteArr := re.ReplaceAll([]byte(namespacenamespacesForWatcherStr), []byte(""))
 	namespacenamespacesForWatcherStr = string(nsByteArr)
 	return namespacenamespacesForWatcherStr
+}
+
+// listClusterNamespaces returns the names of the namespaces that exist. A variable so tests can stand in
+// for the cluster.
+var listClusterNamespaces = func() (map[string]bool, error) {
+	out, _, err := shellout(KubectlApp + " get namespaces -o jsonpath='{.items[*].metadata.name}'")
+	if err != nil {
+		return nil, err
+	}
+	existing := make(map[string]bool)
+	for _, ns := range strings.Fields(out) {
+		existing[ns] = true
+	}
+	return existing, nil
+}
+
+// onlyExistingNamespaces drops the namespaces that do not exist yet. The watcher chart creates a Role in
+// every namespace it is given, so one that does not exist fails the watcher upgrade -- on every loop, while
+// the deployment that would create the namespace keeps failing (seen with a chart that could not be pulled:
+// the watcher's helm history grew by a failed revision every few seconds). A namespace is watched once
+// it exists. When the namespaces cannot be read the set is used as it is, so a kubectl hiccup does not strip
+// the watcher down to nothing.
+func onlyExistingNamespaces(namespacesForWatcher *map[string]bool) *map[string]bool {
+	if namespacesForWatcher == nil || len(*namespacesForWatcher) == 0 {
+		return namespacesForWatcher
+	}
+	existing, err := listClusterNamespaces()
+	if err != nil {
+		sugar.Warnw("Could not list namespaces; configuring the watcher with every namespace", "error", err)
+		return namespacesForWatcher
+	}
+	filtered := make(map[string]bool)
+	for ns, v := range *namespacesForWatcher {
+		if existing[ns] {
+			filtered[ns] = v
+		} else {
+			sugar.Debugw("Not watching a namespace that does not exist yet", "namespace", ns)
+		}
+	}
+	return &filtered
 }
