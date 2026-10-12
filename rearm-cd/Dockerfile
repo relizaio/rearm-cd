@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine3.24@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS build-stage
+FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine3.24@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS build-stage
 WORKDIR /build
 RUN apk add --update --no-cache cosign unzip 
 ENV CGO_ENABLED=0
@@ -7,24 +7,24 @@ ARG TARGETOS
 ARG TARGETARCH
 RUN go test ./...
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.38.4/kubeseal-0.38.4-linux-${TARGETARCH}.tar.gz ./kubeseal-0.38.4-linux-${TARGETARCH}.tar.gz
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.38.4/kubeseal-0.38.4-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.38.4-linux-${TARGETARCH}.tar.gz.sig
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.38.4/cosign.pub ./cosign.pub
-ADD https://get.helm.sh/helm-v4.2.3-linux-${TARGETARCH}.tar.gz ./helm-v4.2.3-linux-${TARGETARCH}.tar.gz
-ADD https://dl.k8s.io/v1.35.6/bin/linux/${TARGETARCH}/kubectl ./kubectl
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz ./kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/cosign.pub ./cosign.pub
+ADD https://get.helm.sh/helm-v4.3.0-linux-${TARGETARCH}.tar.gz ./helm-v4.3.0-linux-${TARGETARCH}.tar.gz
+ADD https://dl.k8s.io/v1.35.9/bin/linux/${TARGETARCH}/kubectl ./kubectl
 # rearm-cli >= 26.07.3 is REQUIRED: cli/deployfailure.go shells out to
 # `rearm devops instevent`, which does not exist in earlier releases. On an
 # older binary the reporting call just fails and is warn-logged, so deployment
 # failures silently stop reaching the Instance view -- bump this pin (and both
 # tools.<arch>.sha256 files) whenever a new agent-facing verb is relied upon.
-ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.07.3/rearm-26.07.3-linux-${TARGETARCH}.zip ./rearm-26.07.3-linux-${TARGETARCH}.zip
+ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.10.2/rearm-26.10.2-linux-${TARGETARCH}.zip ./rearm-26.10.2-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
-RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.38.4-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.38.4-linux-${TARGETARCH}.tar.gz
-RUN tar -xzvf kubeseal-0.38.4-linux-${TARGETARCH}.tar.gz
-RUN tar -xzvf helm-v4.2.3-linux-${TARGETARCH}.tar.gz
-RUN unzip rearm-26.07.3-linux-${TARGETARCH}.zip
+RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
+RUN tar -xzvf kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
+RUN tar -xzvf helm-v4.3.0-linux-${TARGETARCH}.tar.gz
+RUN unzip rearm-26.10.2-linux-${TARGETARCH}.zip
 
-FROM alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS release-stage
+FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS release-stage
 ARG TARGETARCH
 ARG CI_ENV=noci
 ARG GIT_COMMIT=git_commit_undefined
