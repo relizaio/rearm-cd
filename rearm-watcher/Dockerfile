@@ -1,21 +1,22 @@
-FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine3.24@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS build-stage
+FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine3.24@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS build-stage
 WORKDIR /build
 ARG TARGETARCH
 COPY . .
 RUN apk add --update --no-cache cosign unzip 
-ADD https://dl.k8s.io/v1.35.6/bin/linux/${TARGETARCH}/kubectl ./kubectl
-ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.07.2/rearm-26.07.2-linux-${TARGETARCH}.zip ./rearm-26.07.2-linux-${TARGETARCH}.zip
+ADD https://dl.k8s.io/v1.35.9/bin/linux/${TARGETARCH}/kubectl ./kubectl
+ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.10.2/rearm-26.10.2-linux-${TARGETARCH}.zip ./rearm-26.10.2-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
-RUN unzip rearm-26.07.2-linux-${TARGETARCH}.zip
+RUN unzip rearm-26.10.2-linux-${TARGETARCH}.zip
 
-FROM alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b AS release-stage
+FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS release-stage
 ARG TARGETARCH
 ARG CI_ENV=noci
 ARG GIT_COMMIT=git_commit_undefined
 ARG GIT_BRANCH=git_branch_undefined
 ARG VERSION=not_versioned
 USER root
-RUN apk add --update --no-cache openssl bash jq && \
+# No openssl: entrypoint.sh uses only kubectl, jq and rearm.
+RUN apk add --update --no-cache bash jq && \
     mkdir /app && adduser -u 1000 -D apprunner && chown apprunner:apprunner -R /app && \
     mkdir -p /resources/ns && chown apprunner:apprunner /resources && chown apprunner:apprunner /resources/ns
 COPY --chown=apprunner:apprunner entrypoint.sh /
