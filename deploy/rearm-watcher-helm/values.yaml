@@ -7,7 +7,7 @@ enabled: true
 replicaCount: 1
 
 image:
-  repository: registry.relizahub.com/library/rearm-watcher-app:26.07.0@sha256:90606bb8920e43bdf3ebaf90e37f8235a97f9fb874efb1e4b1df8bbda1a74756
+  repository: registry.relizahub.com/library/rearm-watcher-app:26.07.1@sha256:34f40f6e6bc456c2f057208272cc022c7fc9f3c1294a8fa4b45fc96400566485
   pullPolicy: IfNotPresent
 
 nameOverride: ""
