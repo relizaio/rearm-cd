@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.26.9-alpine3.24@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade AS build-stage
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24@sha256:5cb67f19c5e7994dcb80c074f7cfca8aeeada45bbdca035f73df269cefdcce61 AS build-stage
 WORKDIR /build
 RUN apk add --update --no-cache cosign unzip 
 ENV CGO_ENABLED=0
@@ -6,6 +6,7 @@ COPY . .
 ARG TARGETOS
 ARG TARGETARCH
 RUN go test ./...
+RUN go test -count=1 -tags trustgate -run TestTrustGate ./ci/trust-gate/
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz ./kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
 ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig
@@ -23,15 +24,17 @@ RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.40.0-linux-${TARG
 RUN tar -xzvf kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
 RUN tar -xzvf helm-v4.3.0-linux-${TARGETARCH}.tar.gz
 RUN unzip rearm-26.10.2-linux-${TARGETARCH}.zip
+RUN apk add --no-cache openssl && sh ci/trust-gate/selftest.sh
+RUN for b in rearm kubectl kubeseal linux-${TARGETARCH}/helm; do go version -m "$b" | head -n 1; done
 
-FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS release-stage
+FROM alpine:3.24.3@sha256:b3413572228e34bd1c9245f5565e6cd127005655e8a7899aef33d8e83255c9e6 AS release-stage
 ARG TARGETARCH
 ARG CI_ENV=noci
 ARG GIT_COMMIT=git_commit_undefined
 ARG GIT_BRANCH=git_branch_undefined
 ARG VERSION=not_versioned
 ENV ARGO_HELM_VERSION=5.51.6
-RUN apk add --update --no-cache openssl
+RUN apk upgrade --no-cache ca-certificates ca-certificates-bundle && apk info -e -v ca-certificates-bundle && apk add --update --no-cache openssl
 RUN mkdir /app && adduser -u 1000 -D apprunner && chown apprunner:apprunner -R /app
 USER apprunner
 RUN mkdir -p /app/workspace && mkdir /app/tools
@@ -53,3 +56,15 @@ LABEL ci_environment=$CI_ENV
 LABEL org.opencontainers.image.version=$VERSION
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+# Trust-store gate: the bundle this image ships must refuse the compromised
+# eMudhra chains (ci/trust-gate/). The release stage copies the marker, which is
+# what makes BuildKit build this stage. The Go probe ran in build-stage.
+FROM release-stage AS trust-gate
+USER root
+RUN apk add --no-cache curl openssl
+COPY ci/trust-gate/ /gate/
+RUN sh /gate/trust-gate.sh && echo "trust-gate ok $(date -u +%FT%TZ)" > /gate/ok
+
+FROM release-stage AS release
+COPY --from=trust-gate /gate/ok /trust-gate-ok
