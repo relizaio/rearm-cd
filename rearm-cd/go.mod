@@ -2,6 +2,8 @@ module github.com/relizaio/rearm-cd
 
 go 1.26.3
 
+toolchain go1.26.10
+
 require (
 	github.com/CycloneDX/cyclonedx-go v0.11.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.29

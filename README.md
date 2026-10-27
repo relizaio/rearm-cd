@@ -29,6 +29,9 @@ kubectl create secret generic rearm-cd --from-literal=REARM_APIKEYID=your-rearm-
 helm install -n rearm-cd rearm-cd oci://registry.relizahub.com/library/rearm-cd
 ```
 
+## October 2026 eMudhra CA compromise: upgrade to the fixed images
+The private keys of eight eMudhra intermediate CAs were compromised (https://emudhra.we-have-a-problem.com/); the TLS clients inside ReARM CD and the watcher (the agent, the rearm CLI, helm) check no revocation, so every image built before the fix accepts a certificate an attacker can mint for ReARM, for a Helm chart repository or for an OCI registry the agent pulls from. The fixed images are the `rearm-cd-app` and `rearm-watcher-app` tags the charts pin from chart versions `rearm-cd` > 0.4.3 and `rearm-watcher` > 0.1.24 on (the first fixed tags are named in the release notes of those chart versions); each carries the marker file `/trust-gate-ok` (`kubectl exec <pod> -- cat /trust-gate-ok`), written only when the build's trust-store gate passed. Upgrade with `helm upgrade -n rearm-cd rearm-cd oci://registry.relizahub.com/library/rearm-cd` (the watcher is a sub-chart of rearm-cd when `enableWatcher` is true). Check inside the pod: `kubectl exec <pod> -- sh -c 'apk add --no-cache curl >/dev/null; curl -sS https://dv-g3b-emudhra.we-have-a-problem.com/; echo exit $?'` must print a certificate error and `exit 60`; any HTTP answer means the store still trusts the compromised chain. Your nodes' OS stores (kubelet image pulls, any curl on the host): Ubuntu `apt-get update && apt-get install -y --only-upgrade ca-certificates` (20260816ubuntu0.<release>.1); Debian the page's `sed` on /etc/ca-certificates.conf plus `update-ca-certificates`; Alpine `apk upgrade ca-certificates ca-certificates-bundle` (20261020-r0).
+
 ## RBAC Configuration
 
 By default, ReARM CD is installed with cluster-wide permissions (ClusterRole and ClusterRoleBinding). You can customize the RBAC configuration via Helm values:
