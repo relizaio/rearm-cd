@@ -8,22 +8,22 @@ ARG TARGETARCH
 RUN go test ./...
 RUN go test -count=1 -tags trustgate -run TestTrustGate ./ci/trust-gate/
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz ./kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig
-ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.40.0/cosign.pub ./cosign.pub
-ADD https://get.helm.sh/helm-v4.3.0-linux-${TARGETARCH}.tar.gz ./helm-v4.3.0-linux-${TARGETARCH}.tar.gz
-ADD https://dl.k8s.io/v1.35.9/bin/linux/${TARGETARCH}/kubectl ./kubectl
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.41.2/kubeseal-0.41.2-linux-${TARGETARCH}.tar.gz ./kubeseal-0.41.2-linux-${TARGETARCH}.tar.gz
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.41.2/kubeseal-0.41.2-linux-${TARGETARCH}.tar.gz.sig ./kubeseal-0.41.2-linux-${TARGETARCH}.tar.gz.sig
+ADD https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.41.2/cosign.pub ./cosign.pub
+ADD https://get.helm.sh/helm-v4.3.1-linux-${TARGETARCH}.tar.gz ./helm-v4.3.1-linux-${TARGETARCH}.tar.gz
+ADD https://dl.k8s.io/v1.36.5/bin/linux/${TARGETARCH}/kubectl ./kubectl
 # rearm-cli >= 26.07.3 is REQUIRED: cli/deployfailure.go shells out to
 # `rearm devops instevent`, which does not exist in earlier releases. On an
 # older binary the reporting call just fails and is warn-logged, so deployment
 # failures silently stop reaching the Instance view -- bump this pin (and both
 # tools.<arch>.sha256 files) whenever a new agent-facing verb is relied upon.
-ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.10.2/rearm-26.10.2-linux-${TARGETARCH}.zip ./rearm-26.10.2-linux-${TARGETARCH}.zip
+ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.10.17/rearm-26.10.17-linux-${TARGETARCH}.zip ./rearm-26.10.17-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
-RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
-RUN tar -xzvf kubeseal-0.40.0-linux-${TARGETARCH}.tar.gz
-RUN tar -xzvf helm-v4.3.0-linux-${TARGETARCH}.tar.gz
-RUN unzip rearm-26.10.2-linux-${TARGETARCH}.zip
+RUN cosign verify-blob --key cosign.pub --signature kubeseal-0.41.2-linux-${TARGETARCH}.tar.gz.sig kubeseal-0.41.2-linux-${TARGETARCH}.tar.gz
+RUN tar -xzvf kubeseal-0.41.2-linux-${TARGETARCH}.tar.gz
+RUN tar -xzvf helm-v4.3.1-linux-${TARGETARCH}.tar.gz
+RUN unzip rearm-26.10.17-linux-${TARGETARCH}.zip
 RUN apk add --no-cache openssl && sh ci/trust-gate/selftest.sh
 RUN for b in rearm kubectl kubeseal linux-${TARGETARCH}/helm; do go version -m "$b" | head -n 1; done
 
