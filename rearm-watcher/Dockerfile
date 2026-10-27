@@ -3,10 +3,10 @@ WORKDIR /build
 ARG TARGETARCH
 COPY . .
 RUN apk add --update --no-cache cosign unzip 
-ADD https://dl.k8s.io/v1.35.9/bin/linux/${TARGETARCH}/kubectl ./kubectl
-ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.10.2/rearm-26.10.2-linux-${TARGETARCH}.zip ./rearm-26.10.2-linux-${TARGETARCH}.zip
+ADD https://dl.k8s.io/v1.36.5/bin/linux/${TARGETARCH}/kubectl ./kubectl
+ADD https://d7ge14utcyki8.cloudfront.net/rearm-download/26.10.17/rearm-26.10.17-linux-${TARGETARCH}.zip ./rearm-26.10.17-linux-${TARGETARCH}.zip
 RUN sha256sum -c tools.${TARGETARCH}.sha256
-RUN unzip rearm-26.10.2-linux-${TARGETARCH}.zip
+RUN unzip rearm-26.10.17-linux-${TARGETARCH}.zip
 RUN go version -m rearm | head -n 1
 RUN apk add --no-cache openssl && sh ci/trust-gate/selftest.sh
 
