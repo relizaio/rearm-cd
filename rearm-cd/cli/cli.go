@@ -167,13 +167,21 @@ func shellTimeout() time.Duration {
 	return 10 * time.Minute
 }
 
-// HelmForceConflictsFlag returns the --force-conflicts flag (with a trailing
+// HelmForceConflictsFlag returns the server-side apply flags (with a trailing
 // space) when HELM_FORCE_CONFLICTS is enabled, else an empty string. Kept as a
 // helper so every helm upgrade site opts in the same way rather than each
 // growing its own conditional.
+//
+// --force-conflicts only means something under server-side apply, and helm 4
+// refuses it otherwise ("forceConflicts enabled when serverSideApply
+// disabled"). helm's --server-side defaults to "auto", which reuses the
+// previous release's apply method, so a release last written client-side
+// (installed by helm 3, or with --server-side=false) would fail every
+// reconcile. --server-side=true moves such a release to server-side apply on
+// the first forced upgrade; later upgrades stay server-side under "auto".
 func HelmForceConflictsFlag() string {
 	if ForceConflicts {
-		return "--force-conflicts "
+		return "--server-side=true --force-conflicts "
 	}
 	return ""
 }

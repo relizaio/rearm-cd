@@ -24,7 +24,7 @@ func TestHelmForceConflictsFlagWhenEnabled(t *testing.T) {
 
 	ForceConflicts = true
 	got := HelmForceConflictsFlag()
-	if got != "--force-conflicts " {
+	if got != "--server-side=true --force-conflicts " {
 		t.Fatalf("unexpected flag %q", got)
 	}
 	// Trailing space matters: the flag is concatenated directly ahead of the
@@ -49,8 +49,22 @@ func TestHelmForceConflictsComposesIntoValidCommand(t *testing.T) {
 		if enabled && !strings.Contains(cmd, "--force-conflicts rearm-watcher") {
 			t.Fatalf("expected flag immediately before release name: %q", cmd)
 		}
-		if !enabled && strings.Contains(cmd, "force-conflicts") {
+		if !enabled && (strings.Contains(cmd, "force-conflicts") || strings.Contains(cmd, "server-side")) {
 			t.Fatalf("flag leaked while disabled: %q", cmd)
 		}
+	}
+}
+
+// helm 4 rejects --force-conflicts unless the upgrade is server-side, and its
+// --server-side default ("auto") follows the previous release, so a release
+// last written client-side fails with "forceConflicts enabled when
+// serverSideApply disabled". The flag must always carry --server-side=true.
+func TestHelmForceConflictsForcesServerSideApply(t *testing.T) {
+	orig := ForceConflicts
+	defer func() { ForceConflicts = orig }()
+
+	ForceConflicts = true
+	if got := HelmForceConflictsFlag(); !strings.Contains(got, "--server-side=true ") {
+		t.Fatalf("--force-conflicts without --server-side=true: %q", got)
 	}
 }
