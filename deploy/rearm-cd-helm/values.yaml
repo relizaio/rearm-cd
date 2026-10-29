@@ -6,7 +6,7 @@ images:
 enableWatcher: true
 watcherHelmVersion: "0.1.25"
 watcherHelmChart: "oci://registry.relizahub.com/library/rearm-watcher"
-# Adds --force-conflicts to helm upgrades issued by ReARM CD.
+# Adds --server-side=true --force-conflicts to helm upgrades issued by ReARM CD.
 #
 # Server-side apply refuses to change a field owned by a different field
 # manager, so if someone edits a ReARM CD-managed workload out of band
@@ -14,6 +14,9 @@ watcherHelmChart: "oci://registry.relizahub.com/library/rearm-watcher"
 # "conflict occurred while applying object ... conflict with \"kubectl-edit\""
 # and the deployment stays wedged until someone intervenes manually.
 # Setting this to true lets ReARM CD reclaim ownership and recover on its own.
+# A release last written client-side (installed by helm 3, or with
+# --server-side=false) is moved to server-side apply on the first such upgrade
+# and stays server-side afterwards, even once this is turned back off.
 #
 # Left false by default deliberately: it makes ReARM CD overwrite out-of-band
 # changes without warning, which is what you want while recovering a wedge and
