@@ -2,7 +2,7 @@ module github.com/relizaio/rearm-cd
 
 go 1.26.3
 
-toolchain go1.26.10
+toolchain go1.26.11
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.11.0
