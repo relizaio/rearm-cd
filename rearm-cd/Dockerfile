@@ -29,17 +29,18 @@ RUN for b in rearm kubectl kubeseal linux-${TARGETARCH}/helm; do go version -m "
 
 FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS runtime-base
 # Upgrade every package: alpine:3.24.4 still ships zlib 1.3.2-r1 (CVE-2026-4738) and libssl3/libcrypto3
-# 3.5.9-r0; the build fails unless each reached its fixed release (a missing package or an incomparable
-# version fails too). The ca-certificates-bundle check stays for the fixed Alpine bundle (20261020-r0).
-RUN apk upgrade --no-cache && apk add --no-cache openssl && apk info -e -v ca-certificates-bundle && \
-    for p in zlib:1.4-r0 libssl3:3.5.9-r1 libcrypto3:3.5.9-r1; do \
+# 3.5.9-r0; the build fails unless each reached its fixed release, and unless ca-certificates-bundle is
+# the eMudhra-fixed 20261020-r0 or later (a missing package or an incomparable version fails too).
+RUN apk upgrade --no-cache && apk add --no-cache openssl && \
+    for p in zlib:1.4-r0 libssl3:3.5.9-r1 libcrypto3:3.5.9-r1 ca-certificates-bundle:20261020-r0; do \
         v=$(apk info -e -v "${p%%:*}" | sed "s/^${p%%:*}-//") && \
         apk version -t "$v" "${p#*:}" | grep -qx '[=>]' || { echo "${p%%:*} '$v' is older than ${p#*:}" >&2; exit 1; }; \
     done
 
-# Flattened onto scratch: an image SBOM reads every layer, so the base layer's superseded packages would
-# otherwise still be reported after the upgrade above. The copy drops Alpine's image config (PATH and
-# CMD ["/bin/sh"]): PATH is restored here, the ENTRYPOINT below replaces CMD.
+# Flattened onto scratch: the image SBOM (cdxgen on the `docker save` tarball, in rearm-docker-action) reads
+# every layer, so the base layer's superseded packages would otherwise still be reported after the upgrade
+# above. The copy drops Alpine's image config (PATH and CMD ["/bin/sh"]): PATH is restored here, the
+# ENTRYPOINT below replaces CMD.
 FROM scratch AS release-stage
 COPY --from=runtime-base / /
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
